@@ -130,7 +130,7 @@ const executeDelete = async () => {
   const handleAddStudent = async (e) => {
   e.preventDefault();
   try {
-    await fetch('${API_BASE_URL}/students', {
+    await fetch(`${API_BASE_URL}/students`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newStudent)

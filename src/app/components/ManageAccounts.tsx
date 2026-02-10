@@ -31,7 +31,7 @@ export function ManageAccounts() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('${API_BASE_URL}/users');
+      const res = await fetch(`${API_BASE_URL}/users`);
       const data = await res.json();
       setUsers(data);
       setLoading(false);
@@ -43,7 +43,7 @@ export function ManageAccounts() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        const res = await fetch('${API_BASE_URL}/users', {
+        const res = await fetch(`${API_BASE_URL}/users`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newUser)

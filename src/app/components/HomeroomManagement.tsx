@@ -67,7 +67,7 @@ export function HomeroomManagement() {
     setStudentList(prev => prev.map(s => s.id === studentId ? { ...s, today_status: status } : s));
 
     try {
-      await fetch('${API_BASE_URL}/attendance', {
+      await fetch(`${API_BASE_URL}/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentId, date: currentDate, status })
@@ -84,7 +84,7 @@ export function HomeroomManagement() {
     setStudentList(prev => prev.map(s => ({ ...s, today_status: 'present' })));
 
     try {
-      await fetch('${API_BASE_URL}/attendance/mark-all', {
+      await fetch(`${API_BASE_URL}/attendance/mark-all`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentIds: ids, date: currentDate })

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+export const API_BASE_URL = "https://step-58cj.onrender.com";
 import { Plus, Users, School, ChevronRight, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -39,7 +40,7 @@ export function ClassManager() {
   // 2. Fetch Available Teachers when Modal opens
   useEffect(() => {
     if (isModalOpen) {
-      fetch('http://localhost:8081/teachers/available-for-homeroom')
+      fetch(`${API_BASE_URL}/teachers/available-for-homeroom`)
         .then(res => res.json())
         .then(data => setAvailableTeachers(data))
         .catch(err => console.error(err));
@@ -47,7 +48,7 @@ export function ClassManager() {
   }, [isModalOpen]);
 
   const fetchClasses = () => {
-    fetch('http://localhost:8081/classes')
+    fetch(`${API_BASE_URL}/classes`)
       .then(res => res.json())
       .then(data => setClasses(data))
       .catch(err => console.error(err));
@@ -56,7 +57,7 @@ export function ClassManager() {
   const handleCreateClass = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:8081/classes', {
+      const res = await fetch(`${API_BASE_URL}/classes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newClass)
