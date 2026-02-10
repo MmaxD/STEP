@@ -714,8 +714,6 @@ app.delete('/users/:id', (req, res) => {
     });
 });
 
-const cors = require('cors');
-
 app.use(cors({
     origin: [
         "https://step-lms.netlify.app/" // Replace with your actual Netlify URL
