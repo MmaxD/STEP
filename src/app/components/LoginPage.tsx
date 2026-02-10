@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../apiConfig';
 import { GraduationCap, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react'; // Added AlertCircle & Loader2
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -13,6 +14,8 @@ export function LoginPage({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true); // Start loading
@@ -20,13 +23,11 @@ export function LoginPage({ onLogin }) {
 
     try {
         // 1. Send data to Backend
-        const response = await fetch('http://localhost:8081/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, password })
-        });
+        const response = await fetch(`${API_BASE_URL}/login`, { // Use backticks ``
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+  });
 
         const data = await response.json();
 
