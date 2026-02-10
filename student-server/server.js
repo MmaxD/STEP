@@ -8,12 +8,12 @@ app.use(express.json()); // Allows sending JSON data
 
 // 1. Database Connection
 const db = mysql.createConnection({
-    host: 'sql12.freesqldatabase.com',
-    user: 'sql12816714',      // Your MySQL username
-    password: 'L4MWiG4Xg2', // REPLACE WITH YOUR MYSQL PASSWORD
-    database: 'sql12816714'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 3306
 });
-
 db.connect(err => {
     if (err) {
         console.error('Error connecting to MySQL:', err);
@@ -74,8 +74,9 @@ app.delete('/students/:id', (req, res) => {
     });
 });
 
-app.listen(8081, () => {
-    console.log("Listening on port 8081");
+const PORT = process.env.PORT || 8081;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
 });
 // GET: Fetch Dashboard Data for a specific Student
 // DEBUGGING VERSION of the Dashboard Endpoint
