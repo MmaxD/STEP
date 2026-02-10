@@ -701,9 +701,9 @@ const cors = require('cors');
 
 app.use(cors({
     origin: [
-        "https://your-site-name.netlify.app", // Replace with your actual Netlify URL
-        "http://localhost:3000",              // Keep this for local testing
-        "http://localhost:5173"               // For Vite testing
+        "https://step-lms.netlify.app/" // Replace with your actual Netlify URL
+        // "http://localhost:3000",              // Keep this for local testing
+        // "http://localhost:5173"               // For Vite testing
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
