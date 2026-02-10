@@ -59,7 +59,7 @@ export function AdminUserManagement() {
 
   // FETCH DATA FROM MYSQL ON LOAD
   useEffect(() => {
-    fetch('${API_BASE_URL}/students')
+    fetch(`${API_BASE_URL}/students`)
       .then(res => res.json())
       .then(data => setRecords(data))
       .catch(err => console.log(err));
