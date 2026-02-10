@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { API_BASE_URL } from '../apiConfig';
+import { API_BASE_URL } from '../../apiConfig';
 import { GraduationCap, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react'; // Added AlertCircle & Loader2
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
