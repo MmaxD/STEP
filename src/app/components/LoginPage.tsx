@@ -16,6 +16,8 @@ export function LoginPage({ onLogin }) {
 
 
 
+
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true); // Start loading
@@ -24,10 +26,10 @@ export function LoginPage({ onLogin }) {
     try {
         // 1. Send data to Backend
         const response = await fetch(`${API_BASE_URL}/login`, { // Use backticks ``
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-  });
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
 
         const data = await response.json();
 
