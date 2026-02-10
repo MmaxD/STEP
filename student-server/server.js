@@ -7,20 +7,38 @@ app.use(cors()); // Allows React to talk to this server
 app.use(express.json()); // Allows sending JSON data
 
 // 1. Database Connection
-const db = mysql.createConnection({
+const mysql = require('mysql2');
+
+// 1. Create a Pool instead of a single connection
+const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    enableKeepAlive: true, // Crucial for cloud databases
+    keepAliveInitialDelay: 10000
 });
-db.connect(err => {
+
+// 2. Test the connection
+db.getConnection((err, connection) => {
     if (err) {
-        console.error('Error connecting to MySQL:', err);
+        console.error("Database connection failed:", err.message);
     } else {
-        console.log('Connected to MySQL Database');
+        console.log("Connected to Online MySQL Database Pool!");
+        connection.release(); // Send it back to the pool
     }
 });
+// db.connect(err => {
+//     if (err) {
+//         console.error('Error connecting to MySQL:', err);
+//     } else {
+//         console.log('Connected to MySQL Database');
+//     }
+// });
 
 // 2. API Endpoints
 
