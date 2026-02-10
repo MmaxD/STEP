@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+export const API_BASE_URL = "https://step-58cj.onrender.com";
 import { useParams,useNavigate } from 'react-router-dom'; // <--- 1. IMPORT HOOK
 import { Calendar, Check, Users, AlertTriangle, TrendingDown, Clock, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -42,7 +43,7 @@ export function HomeroomManagement() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch(`http://localhost:8081/homeroom/${encodeURIComponent(currentClass)}?date=${currentDate}`);
+      const res = await fetch(`${API_BASE_URL}/homeroom/${encodeURIComponent(currentClass)}?date=${currentDate}`);
       const data = await res.json();
       setStudentList(data);
       setLoading(false);
@@ -53,7 +54,7 @@ export function HomeroomManagement() {
 
   const fetchAbsentees = async () => {
     try {
-      const res = await fetch(`http://localhost:8081/homeroom/${encodeURIComponent(currentClass)}/absentees`);
+      const res = await fetch(`${API_BASE_URL}/homeroom/${encodeURIComponent(currentClass)}/absentees`);
       const data = await res.json();
       setAbsentees(data);
     } catch (err) {
@@ -66,7 +67,7 @@ export function HomeroomManagement() {
     setStudentList(prev => prev.map(s => s.id === studentId ? { ...s, today_status: status } : s));
 
     try {
-      await fetch('http://localhost:8081/attendance', {
+      await fetch('${API_BASE_URL}/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentId, date: currentDate, status })
@@ -83,7 +84,7 @@ export function HomeroomManagement() {
     setStudentList(prev => prev.map(s => ({ ...s, today_status: 'present' })));
 
     try {
-      await fetch('http://localhost:8081/attendance/mark-all', {
+      await fetch('${API_BASE_URL}/attendance/mark-all', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ studentIds: ids, date: currentDate })

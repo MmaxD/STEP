@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+export const API_BASE_URL = "https://step-58cj.onrender.com";
 import { useNavigate } from 'react-router-dom';
 import { Users, Search, Plus, Trash2, ArrowLeft, Shield, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
@@ -30,7 +31,7 @@ export function ManageAccounts() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:8081/users');
+      const res = await fetch('${API_BASE_URL}/users');
       const data = await res.json();
       setUsers(data);
       setLoading(false);
@@ -42,7 +43,7 @@ export function ManageAccounts() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        const res = await fetch('http://localhost:8081/users', {
+        const res = await fetch('${API_BASE_URL}/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newUser)
@@ -61,7 +62,7 @@ export function ManageAccounts() {
   const handleDeleteUser = async () => {
     if (!deleteConfirm.id) return;
     try {
-        await fetch(`http://localhost:8081/users/${deleteConfirm.id}`, { method: 'DELETE' });
+        await fetch(`${API_BASE_URL}/users/${deleteConfirm.id}`, { method: 'DELETE' });
         setDeleteConfirm({ open: false, id: null });
         fetchUsers();
     } catch (err) { console.error(err); }

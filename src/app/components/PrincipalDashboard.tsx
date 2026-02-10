@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+export const API_BASE_URL = "https://step-58cj.onrender.com";
 import { useNavigate } from 'react-router-dom'; // 1. Import Router Hook
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -202,7 +203,7 @@ export function PrincipalDashboard() {
     const initData = async () => {
       try {
         setLoading(true);
-        const dashRes = await fetch('http://localhost:8081/principal/dashboard');
+        const dashRes = await fetch('${API_BASE_URL}/principal/dashboard');
         const dashData = await dashRes.json();
         setDashboardData(dashData);
         refreshBuckets();
@@ -218,7 +219,7 @@ export function PrincipalDashboard() {
 
   const refreshBuckets = async () => {
     try {
-      const res = await fetch('http://localhost:8081/classes/with-students');
+      const res = await fetch('${API_BASE_URL}/classes/with-students');
       if (!res.ok) { setBuckets([]); return; }
       const data = await res.json();
       if (Array.isArray(data)) setBuckets(data);
@@ -231,7 +232,7 @@ export function PrincipalDashboard() {
 
   const refreshUnassigned = async () => {
     try {
-      const res = await fetch('http://localhost:8081/students/unassigned');
+      const res = await fetch('${API_BASE_URL}/students/unassigned');
       const data = await res.json();
       const enrichedStudents = data.map((s: any, index: number) => {
         let gradeLevel = s.enrolled_class; 
@@ -276,7 +277,7 @@ export function PrincipalDashboard() {
 
   useEffect(() => {
     if (isClassModalOpen) {
-      fetch('http://localhost:8081/teachers/available-for-homeroom')
+      fetch('${API_BASE_URL}/teachers/available-for-homeroom')
         .then(res => res.json())
         .then(data => setAvailableTeachers(data))
         .catch(err => console.error(err));
@@ -287,7 +288,7 @@ export function PrincipalDashboard() {
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:8081/classes', {
+      const res = await fetch('${API_BASE_URL}/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newClass)
@@ -311,7 +312,7 @@ export function PrincipalDashboard() {
   const handleAddTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        const res = await fetch('http://localhost:8081/teachers', {
+        const res = await fetch('${API_BASE_URL}/teachers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newTeacher)
@@ -326,7 +327,7 @@ export function PrincipalDashboard() {
                 message: `${newTeacher.name} has been added to the faculty.`
             });
             // Refresh dashboard data
-            const dashRes = await fetch('http://localhost:8081/principal/dashboard');
+            const dashRes = await fetch('${API_BASE_URL}/principal/dashboard');
             const dashData = await dashRes.json();
             setDashboardData(dashData);
         } else {
@@ -347,8 +348,8 @@ export function PrincipalDashboard() {
 
     try {
         let url = '';
-        if (type === 'class') url = `http://localhost:8081/classes/${id}`;
-        if (type === 'teacher') url = `http://localhost:8081/teachers/${id}`;
+        if (type === 'class') url = `${API_BASE_URL}/classes/${id}`;
+        if (type === 'teacher') url = `${API_BASE_URL}/teachers/${id}`;
 
         const res = await fetch(url, { method: 'DELETE' });
         
@@ -360,7 +361,7 @@ export function PrincipalDashboard() {
                 refreshUnassigned();
             } else {
                 handleViewFaculty(); 
-                const dashRes = await fetch('http://localhost:8081/principal/dashboard');
+                const dashRes = await fetch('${API_BASE_URL}/principal/dashboard');
                 const dashData = await dashRes.json();
                 setDashboardData(dashData);
             }
@@ -426,7 +427,7 @@ const handleClassClick = (classId: string) => {
     });
 
     try {
-      const res = await fetch('http://localhost:8081/students/placement/finalize', {
+      const res = await fetch('${API_BASE_URL}/students/placement/finalize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ placements })
@@ -449,7 +450,7 @@ const handleClassClick = (classId: string) => {
 
   const handleViewFaculty = async () => {
     try {
-      const res = await fetch('http://localhost:8081/faculty');
+      const res = await fetch('${API_BASE_URL}/faculty');
       const data = await res.json();
       setFaculty(data);
       setShowFacultyList(true);

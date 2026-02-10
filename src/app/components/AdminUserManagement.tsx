@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+// src/apiConfig.js
+export const API_BASE_URL = "https://step-58cj.onrender.com";
 import { Search, Filter, UserPlus, MoreVertical, Edit, Trash2, Mail } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -57,7 +59,7 @@ export function AdminUserManagement() {
 
   // FETCH DATA FROM MYSQL ON LOAD
   useEffect(() => {
-    fetch('http://localhost:8081/students')
+    fetch('${API_BASE_URL}/students')
       .then(res => res.json())
       .then(data => setRecords(data))
       .catch(err => console.log(err));
@@ -88,7 +90,7 @@ const confirmDelete = (id: string) => {
 const executeDelete = async () => {
   if (deleteId) {
     try {
-      await fetch(`http://localhost:8081/students/${deleteId}`, {
+      await fetch(`${API_BASE_URL}/students/${deleteId}`, {
         method: 'DELETE'
       });
       // Update UI locally without reload
@@ -114,7 +116,7 @@ const executeDelete = async () => {
   const handleUpdateStudent = async (e) => {
   e.preventDefault();
   try {
-    await fetch(`http://localhost:8081/students/${editingId}`, {
+    await fetch(`${API_BASE_URL}/students/${editingId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newStudent)
@@ -128,7 +130,7 @@ const executeDelete = async () => {
   const handleAddStudent = async (e) => {
   e.preventDefault();
   try {
-    await fetch('http://localhost:8081/students', {
+    await fetch('${API_BASE_URL}/students', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newStudent)

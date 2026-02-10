@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+export const API_BASE_URL = "https://step-58cj.onrender.com";
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mail, Phone, TrendingUp, Target, Award, Brain, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -24,7 +25,7 @@ export function EnhancedStudentDashboard() { // Defaulting to ID 1 for testing
 
   useEffect(() => {
     // Fetch data from your backend
-    fetch(`http://localhost:8081/student-dashboard/${studentId}`)
+    fetch(`${API_BASE_URL}/student-dashboard/${studentId}`)
       .then(res => res.json())
       .then(result => {
         setData(result);
