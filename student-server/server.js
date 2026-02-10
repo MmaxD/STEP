@@ -7,7 +7,6 @@ app.use(cors()); // Allows React to talk to this server
 app.use(express.json()); // Allows sending JSON data
 
 // 1. Database Connection
-const mysql = require('mysql2');
 
 // 1. Create a Pool instead of a single connection
 const db = mysql.createPool({
