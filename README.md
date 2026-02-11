@@ -35,11 +35,12 @@ Moving from reactive "End-of-Term" reports to live data.
 * **Real-time Synchronization:** Schedule updates reflect across all dashboards in under 2 seconds.
 * **Encryption:** AES-256 standards for all sensitive student academic records.
 
-## 📈 Roadmap
-- **Phase 01:** Requirements Exploration & Dx Analysis [Current]
-- **Phase 02:** Database Architecture & Timetable Logic
-- **Phase 03:** Dashboard UI/UX Development
-- **Phase 04:** Predictive Algorithm Deployment & Beta Testing
-
 ---
-*Developed as part of the Phase 01 Deliverable for School Management Digital Transformation.*
+
+## for testing
+* principle Acoount Email   - admin@school.edu
+                  * PS      - admin123
+ * administration Acoount Email     - abc@abc.com
+                  * PS              - 123
+* * Teacher Account     Email   - teacher@school.edu
+                      * PS      - teacher123
