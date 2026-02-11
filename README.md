@@ -33,7 +33,7 @@ Moving from reactive "End-of-Term" reports to live data.
 ## 🏗 Technical Overview
 * **Role-Based Access Control (RBAC):** Tiered permissions for data integrity.
 * **Real-time Synchronization:** Schedule updates reflect across all dashboards in under 2 seconds.
-* **Encryption:** AES-256 standards for all sensitive student academic records.
+
 
 ---
 
@@ -42,5 +42,7 @@ Moving from reactive "End-of-Term" reports to live data.
                   * PS      - admin123
  * administration Acoount Email     - abc@abc.com
                   * PS              - 123
-* * Teacher Account     Email   - teacher@school.edu
+* * Teacher Account   * Email   - teacher@school.edu
                       * PS      - teacher123
+
+
