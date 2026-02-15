@@ -60,7 +60,7 @@ app.post('/students', (req, res) => {
         req.body.status
     ];
     db.query(sql, [values], (err, data) => {
-        if (err) return res.json(err);
+        if (err) return res.status(500).json(err);
         return res.json("Student has been created successfully.");
     });
 });
@@ -76,7 +76,7 @@ app.put('/students/:id', (req, res) => {
         req.body.status
     ];
     db.query(sql, [...values, id], (err, data) => {
-        if (err) return res.json(err);
+        if (err) return resres.status(500).json(err);
         return res.json("Student updated successfully.");
     });
 });
@@ -86,7 +86,7 @@ app.delete('/students/:id', (req, res) => {
     const id = req.params.id;
     const sql = "DELETE FROM students WHERE id = ?";
     db.query(sql, [id], (err, data) => {
-        if (err) return res.json(err);
+        if (err) return res.status(500).json(err);
         return res.json("Student deleted successfully.");
     });
 });
