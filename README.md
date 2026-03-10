@@ -37,7 +37,7 @@ Moving from reactive "End-of-Term" reports to live data.
 
 ---
 
-## for testing
+## for testing login credentials
 * principle Acoount Email   - admin@school.edu
                   * PS      - admin123
  * administration Acoount Email     - abc@abc.com
