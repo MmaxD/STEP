@@ -71,6 +71,7 @@ export default function App() {
           <Route path="/admin" element={<AdminUserManagement />} />
           <Route path="/grading" element={<TeacherGrading />} />
           <Route path="/accounts" element={<ManageAccounts />} />
+          <Route path="/StudentMarksEnter" element={<Marksupdate />} />
 
           {/* Dynamic Route for Student Performance */}
           {/* 1. Default Route (No ID) - Redirects to Class 1 or shows a "Select Class" screen */}

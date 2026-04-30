@@ -34,9 +34,9 @@ export function Navbar({ currentView, setView, onLogout }: NavbarProps) {
         ];
       case 'homeroom':
         return [
-          { id: 'homeroom', name: 'Homeroom', path: '/homeroom', icon: <Users className="w-4 h-4 mr-2"/> },
           { id: 'analytics', name: 'Analytics', path: '/analytics', icon: <BarChart2 className="w-4 h-4 mr-2"/> },
-          { id: 'grading', name: 'Grading', path: '/grading', icon: <ClipboardList className="w-4 h-4 mr-2"/> },
+          { id: 'homeroom', name: 'homeroom', path: '/homeroom', icon: <Users className="w-4 h-4 mr-2"/> },
+          { id: 'Marksupdate', name: 'Grading', path: '/StudentMarksEnter', icon: <ClipboardList className="w-4 h-4 mr-2"/> },
         ];
       case 'admin':
         return [
