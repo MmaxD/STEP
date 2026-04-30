@@ -10,7 +10,7 @@ import { TeacherGrading } from '@/app/components/TeacherGrading';
 import { TeacherDashboard } from '@/app/components/TeacherDashboard';
 import { AdminUserManagement } from '@/app/components/AdminUserManagement';
 import { ManageAccounts } from '@/app/components/ManageAccounts';
-import { StudentMarksEnter } from '@/app/components/StudentMarksEnter';
+import { StudentMarkEntry } from '@/app/components/StudentMarksEnter';
 
 export default function App() {
   const navigate = useNavigate(); // Now we can use this hook in App too!
@@ -71,7 +71,7 @@ export default function App() {
           <Route path="/admin" element={<AdminUserManagement />} />
           <Route path="/grading" element={<TeacherGrading />} />
           <Route path="/accounts" element={<ManageAccounts />} />
-          <Route path="/StudentMarksEnter" element={<StudentMarksEnter />} />
+          <Route path="/StudentMarksEnter" element={<StudentMarkEntry />} />
 
           {/* Dynamic Route for Student Performance */}
           {/* 1. Default Route (No ID) - Redirects to Class 1 or shows a "Select Class" screen */}
