@@ -10,7 +10,7 @@ import { TeacherGrading } from '@/app/components/TeacherGrading';
 import { TeacherDashboard } from '@/app/components/TeacherDashboard';
 import { AdminUserManagement } from '@/app/components/AdminUserManagement';
 import { ManageAccounts } from '@/app/components/ManageAccounts';
-import { Marksupdate } from '@/app/components/StudentMarksEnter';
+import { StudentMarksEnter } from '@/app/components/StudentMarksEnter';
 
 export default function App() {
   const navigate = useNavigate(); // Now we can use this hook in App too!
