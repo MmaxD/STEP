@@ -31,13 +31,13 @@ export function Navbar({ currentView, setView, onLogout }: NavbarProps) {
         return [
           { id: 'principal', name: 'Dashboard', path: '/principal', icon: <Shield className="w-4 h-4 mr-2"/> },
           { id: 'analytics', name: 'Analytics', path: '/analytics', icon: <BarChart2 className="w-4 h-4 mr-2"/> },
-          { id: 'StudentMarksEnter', name: 'Grading', path: '/StudentMarksEnter', icon: <ClipboardList className="w-4 h-4 mr-2"/> },
+          { id: 'StudentMarkEntry', name: 'Grading', path: '/StudentMarkEntry', icon: <ClipboardList className="w-4 h-4 mr-2"/> },
         ];
       case 'homeroom':
         return [
           { id: 'analytics', name: 'Analytics', path: '/analytics', icon: <BarChart2 className="w-4 h-4 mr-2"/> },
           { id: 'homeroom', name: 'homeroom', path: '/homeroom', icon: <Users className="w-4 h-4 mr-2"/> },
-          { id: 'StudentMarksEnter', name: 'Grading', path: '/StudentMarksEnter', icon: <ClipboardList className="w-4 h-4 mr-2"/> },
+          { id: 'StudentMarkEntry', name: 'Grading', path: '/StudentMarkEntry', icon: <ClipboardList className="w-4 h-4 mr-2"/> },
         ];
       case 'admin':
         return [
