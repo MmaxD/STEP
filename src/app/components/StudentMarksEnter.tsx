@@ -68,11 +68,17 @@ const INITIAL_MARKS: MarksStore = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 function getLetterGrade(pct: number): { label: string; color: string } {
-  if (pct >= 90) return { label: 'A — Excellent',          color: 'bg-green-100 text-green-800' };
-  if (pct >= 75) return { label: 'B — Good',               color: 'bg-blue-100 text-blue-800'  };
-  if (pct >= 55) return { label: 'C — Average',            color: 'bg-amber-100 text-amber-800' };
-  return           { label: 'F — Needs improvement', color: 'bg-red-100 text-red-800'    };
+  if (pct >= 90) return { label: 'A — Excellent',        color: 'bg-green-100 text-green-800' };
+  if (pct >= 75) return { label: 'B — Good',             color: 'bg-blue-100 text-blue-800'   };
+  if (pct >= 55) return { label: 'C — Average',          color: 'bg-amber-100 text-amber-800' };
+  return           { label: 'F — Needs improvement', color: 'bg-red-100 text-red-800'     };
 }
 
 function calcAverage(subjectMarks: SubjectMarks): number | null {
@@ -96,25 +102,50 @@ function getStatusBadge(status: Status) {
     late:      { className: 'bg-red-100 text-red-700 hover:bg-red-100',       label: 'Late'      },
   };
   const { className, label } = map[status];
-  return <Badge className={className}>{label}</Badge>;
+  return <Badge className={`text-xs ${className}`}>{label}</Badge>;
 }
 
 function getProgressColor(pct: number): string {
-  if (pct >= 75) return 'bg-green-600';
+  if (pct >= 75) return 'bg-green-500';
   if (pct >= 55) return 'bg-amber-500';
   return 'bg-red-500';
 }
 
-// ─── Student Card Sub-component ───────────────────────────────────────────────
+function getPlaceColor(rank: number): string {
+  if (rank === 1) return 'text-amber-700 font-semibold';
+  if (rank === 2) return 'text-blue-700 font-semibold';
+  if (rank === 3) return 'text-rose-700 font-semibold';
+  return 'text-gray-500';
+}
 
-interface StudentCardProps {
+// ─── Rank computation ─────────────────────────────────────────────────────────
+
+function computeRanks(
+  students: Student[],
+  marksStore: MarksStore
+): { rankMap: Record<number, number>; rankedTotal: number } {
+  const ranked = students
+    .map(s => ({ id: s.id, avg: calcAverage(marksStore[s.id]) }))
+    .filter((s): s is { id: number; avg: number } => s.avg !== null)
+    .sort((a, b) => b.avg - a.avg);
+
+  const rankMap: Record<number, number> = {};
+  ranked.forEach((s, i) => { rankMap[s.id] = i + 1; });
+
+  return { rankMap, rankedTotal: ranked.length };
+}
+
+// ─── Student Row ──────────────────────────────────────────────────────────────
+
+interface StudentRowProps {
   student: Student;
-  index: number;
+  colorIndex: number;
   marksStore: MarksStore;
+  rank: number | null;
   onClick: () => void;
 }
 
-function StudentCard({ student, index, marksStore, onClick }: StudentCardProps) {
+function StudentRow({ student, colorIndex, marksStore, rank, onClick }: StudentRowProps) {
   const avg = calcAverage(marksStore[student.id]);
   const grade = avg !== null ? getLetterGrade(avg) : null;
   const hasMarks = avg !== null;
@@ -122,34 +153,44 @@ function StudentCard({ student, index, marksStore, onClick }: StudentCardProps) 
   return (
     <div
       onClick={onClick}
-      className={`bg-white border rounded-xl p-4 cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
+      className={`flex items-center gap-3 bg-white border rounded-xl px-4 py-3 cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
         hasMarks
           ? 'border-green-200 hover:border-green-400'
           : 'border-gray-200 hover:border-amber-300'
       }`}
     >
-      <Avatar className="h-11 w-11 mb-3">
-        <AvatarFallback className={`text-sm font-medium ${AVATAR_COLORS[index % AVATAR_COLORS.length]}`}>
+      {/* Place */}
+      <div className={`w-9 text-sm shrink-0 ${rank !== null ? getPlaceColor(rank) : 'text-gray-300'}`}>
+        {rank !== null ? ordinal(rank) : '—'}
+      </div>
+
+      {/* Avatar */}
+      <Avatar className="h-9 w-9 shrink-0">
+        <AvatarFallback className={`text-xs font-medium ${AVATAR_COLORS[colorIndex % AVATAR_COLORS.length]}`}>
           {student.initials}
         </AvatarFallback>
       </Avatar>
 
-      <p className="text-sm font-medium text-gray-900 leading-snug">{student.name}</p>
-      <p className="text-xs text-gray-400 mt-0.5 mb-2">{student.studentId}</p>
+      {/* Name + ID */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 truncate">{student.name}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{student.studentId}</p>
+      </div>
 
-      {getStatusBadge(student.status)}
-
-      {avg !== null && grade ? (
-        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-gray-500">Avg:</span>
-          <span className="text-xs font-medium text-gray-900">{avg}</span>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${grade.color}`}>
-            {grade.label.split(' ')[0]}
-          </span>
-        </div>
-      ) : (
-        <p className="mt-2 text-xs text-amber-500">No marks yet</p>
-      )}
+      {/* Badge + avg */}
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {getStatusBadge(student.status)}
+        {avg !== null && grade ? (
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-medium text-gray-900">{avg}</span>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${grade.color}`}>
+              {grade.label.split(' ')[0]}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-amber-500">No marks yet</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -159,12 +200,22 @@ function StudentCard({ student, index, marksStore, onClick }: StudentCardProps) 
 export function StudentMarkEntry() {
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [marksStore, setMarksStore] = useState<MarksStore>(INITIAL_MARKS);
-
-  // Modal state
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [draftMarks, setDraftMarks] = useState<SubjectMarks>({});
 
-  // ── Open / Close ────────────────────────────────────────────────────────────
+  // ── Ranks ────────────────────────────────────────────────────────────────────
+
+  const { rankMap, rankedTotal } = computeRanks(students, marksStore);
+
+  // ── Split + sort ─────────────────────────────────────────────────────────────
+
+  const pendingStudents = students.filter(s => calcAverage(marksStore[s.id]) === null);
+
+  const rankedStudents = students
+    .filter(s => calcAverage(marksStore[s.id]) !== null)
+    .sort((a, b) => (rankMap[a.id] ?? 99) - (rankMap[b.id] ?? 99));
+
+  // ── Modal helpers ────────────────────────────────────────────────────────────
 
   function openModal(student: Student) {
     setSelectedStudent(student);
@@ -176,109 +227,93 @@ export function StudentMarkEntry() {
     setDraftMarks({});
   }
 
-  // ── Save ────────────────────────────────────────────────────────────────────
-
   function saveMarks() {
     if (!selectedStudent) return;
-
-    setMarksStore(prev => ({
-      ...prev,
-      [selectedStudent.id]: { ...draftMarks },
-    }));
-
-    // Mark student as graded
+    setMarksStore(prev => ({ ...prev, [selectedStudent.id]: { ...draftMarks } }));
     setStudents(prev =>
-      prev.map(s =>
-        s.id === selectedStudent.id ? { ...s, status: 'graded' } : s
-      )
+      prev.map(s => s.id === selectedStudent.id ? { ...s, status: 'graded' } : s)
     );
-
     closeModal();
   }
-
-  // ── Draft mark update ────────────────────────────────────────────────────────
 
   function handleMarkChange(subject: string, value: string) {
     const parsed = value === '' ? '' : Math.min(100, Math.max(0, Number(value)));
     setDraftMarks(prev => ({ ...prev, [subject]: parsed }));
   }
 
-  // ── Draft calculations ───────────────────────────────────────────────────────
+  // ── Draft summary ────────────────────────────────────────────────────────────
 
-  const draftTotal   = calcTotal(draftMarks);
-  const filledCount  = Object.values(draftMarks).filter(v => v !== '').length;
-  const draftPct     = filledCount > 0 ? Math.round(draftTotal / SUBJECTS.length) : 0;
-  const draftGrade   = filledCount > 0 ? getLetterGrade(draftPct) : null;
+  const draftTotal  = calcTotal(draftMarks);
+  const filledCount = Object.values(draftMarks).filter(v => v !== '').length;
+  const draftPct    = filledCount > 0 ? Math.round(draftTotal / SUBJECTS.length) : 0;
+  const draftGrade  = filledCount > 0 ? getLetterGrade(draftPct) : null;
+
+  const selectedIndex  = selectedStudent ? students.findIndex(s => s.id === selectedStudent.id) : 0;
+  const selectedRank   = selectedStudent ? (rankMap[selectedStudent.id] ?? null) : null;
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
 
-      {/* Page header */}
+      {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <BookOpen className="h-5 w-5 text-blue-600" />
           <h1 className="text-2xl text-gray-900">Student Marks</h1>
         </div>
-        <p className="text-sm text-gray-500">Click a student card to add or update marks</p>
+        <p className="text-sm text-gray-500">Click a student to add or update marks</p>
       </div>
 
-      {/* Two-column layout */}
+      {/* Two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* ── Column 1: Marks NOT updated ── */}
+        {/* ── Pending column ── */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-amber-400" />
+            <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
             <h2 className="text-sm font-medium text-gray-700">Pending</h2>
-            <span className="text-xs text-gray-400">
-              ({students.filter(s => calcAverage(marksStore[s.id]) === null).length} students)
-            </span>
+            <span className="text-xs text-gray-400">({pendingStudents.length} students)</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {students
-              .filter(s => calcAverage(marksStore[s.id]) === null)
-              .map((student, index) => (
-                <StudentCard
-                  key={student.id}
-                  student={student}
-                  index={index}
-                  marksStore={marksStore}
-                  onClick={() => openModal(student)}
-                />
-              ))}
-            {students.filter(s => calcAverage(marksStore[s.id]) === null).length === 0 && (
-              <div className="col-span-3 py-10 text-center text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
-                🎉 All students have been marked!
+          <div className="flex flex-col gap-2">
+            {pendingStudents.map(student => (
+              <StudentRow
+                key={student.id}
+                student={student}
+                colorIndex={students.findIndex(s => s.id === student.id)}
+                marksStore={marksStore}
+                rank={null}
+                onClick={() => openModal(student)}
+              />
+            ))}
+            {pendingStudents.length === 0 && (
+              <div className="py-10 text-center text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
+                All students have been marked!
               </div>
             )}
           </div>
         </div>
 
-        {/* ── Column 2: Marks updated ── */}
+        {/* ── Marks updated column (sorted by rank) ── */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
             <h2 className="text-sm font-medium text-gray-700">Marks Updated</h2>
-            <span className="text-xs text-gray-400">
-              ({students.filter(s => calcAverage(marksStore[s.id]) !== null).length} students)
-            </span>
+            <span className="text-xs text-gray-400">({rankedStudents.length} students)</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {students
-              .filter(s => calcAverage(marksStore[s.id]) !== null)
-              .map((student, index) => (
-                <StudentCard
-                  key={student.id}
-                  student={student}
-                  index={index}
-                  marksStore={marksStore}
-                  onClick={() => openModal(student)}
-                />
-              ))}
-            {students.filter(s => calcAverage(marksStore[s.id]) !== null).length === 0 && (
-              <div className="col-span-3 py-10 text-center text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
+          <div className="flex flex-col gap-2">
+            {rankedStudents.map(student => (
+              <StudentRow
+                key={student.id}
+                student={student}
+                colorIndex={students.findIndex(s => s.id === student.id)}
+                marksStore={marksStore}
+                rank={rankMap[student.id] ?? null}
+                onClick={() => openModal(student)}
+              />
+            ))}
+            {rankedStudents.length === 0 && (
+              <div className="py-10 text-center text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
                 No marks added yet
               </div>
             )}
@@ -287,11 +322,11 @@ export function StudentMarkEntry() {
 
       </div>
 
-      {/* ── Modal overlay ── */}
+      {/* ── Modal ── */}
       {selectedStudent && (
         <div
           className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+          onClick={e => { if (e.target === e.currentTarget) closeModal(); }}
         >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
 
@@ -300,11 +335,7 @@ export function StudentMarkEntry() {
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback
-                    className={`text-sm font-medium ${
-                      AVATAR_COLORS[
-                        students.findIndex(s => s.id === selectedStudent.id) % AVATAR_COLORS.length
-                      ]
-                    }`}
+                    className={`text-sm font-medium ${AVATAR_COLORS[selectedIndex % AVATAR_COLORS.length]}`}
                   >
                     {selectedStudent.initials}
                   </AvatarFallback>
@@ -312,6 +343,17 @@ export function StudentMarkEntry() {
                 <div>
                   <h2 className="text-base font-medium text-gray-900">{selectedStudent.name}</h2>
                   <p className="text-xs text-gray-400">{selectedStudent.studentId}</p>
+                  {selectedRank !== null ? (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Place:{' '}
+                      <span className={`font-medium ${getPlaceColor(selectedRank)}`}>
+                        {ordinal(selectedRank)}
+                      </span>
+                      {' '}out of {rankedTotal} students
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-0.5">Rank will appear after saving marks</p>
+                  )}
                 </div>
               </div>
               <button
@@ -345,19 +387,17 @@ export function StudentMarkEntry() {
                 ))}
               </div>
 
-              {/* Divider */}
               <div className="border-t border-gray-100 mb-4" />
 
-              {/* Total / grade summary */}
+              {/* Summary */}
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-xs text-gray-500">Total Score</p>
-                  {draftGrade && (
+                  {draftGrade ? (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${draftGrade.color}`}>
                       {draftGrade.label}
                     </span>
-                  )}
-                  {!draftGrade && (
+                  ) : (
                     <p className="text-xs text-gray-400 mt-1">Enter marks above</p>
                   )}
                 </div>
@@ -380,19 +420,12 @@ export function StudentMarkEntry() {
                 />
               </div>
 
-              {/* Action buttons */}
+              {/* Actions */}
               <div className="flex gap-2">
-                <Button
-                  onClick={saveMarks}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                >
+                <Button onClick={saveMarks} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
                   Save Marks
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={closeModal}
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={closeModal} className="flex-1">
                   Cancel
                 </Button>
               </div>
