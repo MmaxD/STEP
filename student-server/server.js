@@ -662,7 +662,8 @@ app.post('/login', (req, res) => {
             return res.json({ 
                 status: "Success", 
                 role: user.role, 
-                name: user.name 
+                name: user.name,
+                id: user.id
             });
         
         } else {
