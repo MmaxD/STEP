@@ -38,6 +38,7 @@ export function LoginPage({ onLogin }) {
             // Save user info
             localStorage.setItem('userRole', data.role);
             localStorage.setItem("loggedInUserId", data.id);
+            console.log("Fetching timetable for teacher ID:", data.id);
             localStorage.setItem('userName', data.name);
 
             // 3. Navigate based on Role
