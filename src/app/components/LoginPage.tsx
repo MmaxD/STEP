@@ -37,6 +37,7 @@ export function LoginPage({ onLogin }) {
         if (response.ok && data.status === "Success") {
             // Save user info
             localStorage.setItem('userRole', data.role);
+            localStorage.setItem("loggedInUserId", data.id);
             localStorage.setItem('userName', data.name);
 
             // 3. Navigate based on Role
