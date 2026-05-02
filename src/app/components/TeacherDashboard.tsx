@@ -294,7 +294,7 @@ export function TeacherDashboard() {
   useEffect(() => {
     // 1. Get the ID from localStorage
     const teacherId = localStorage.getItem("loggedInUserId") || "1";
-
+    console.log("Fetching timetable for teacher ID:", teacherId);
     // 2. Inject it into the URL using backticks ` ` instead of quotes ' '
     fetch(`${API_BASE_URL}/api/timetable/${teacherId}`)
       .then((response) => response.json())
