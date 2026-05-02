@@ -714,6 +714,21 @@ app.delete('/users/:id', (req, res) => {
     });
 });
 
+app.get("/api/timetable/:teacherId", (req, res) => {
+  const teacherId = req.params.teacherId;
+  
+  // Now we filter by the teacher_id!
+  const sql = "SELECT * FROM teacher_timetable WHERE teacher_id = ?";
+
+  db.query(sql, [teacherId], (err, results) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ error: "Failed to fetch timetable" });
+    }
+    return res.json(results);
+  });
+});
+
 app.use(cors({
     origin: [
         "https://step-lms.netlify.app/" // Replace with your actual Netlify URL
