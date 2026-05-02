@@ -645,31 +645,41 @@ app.get('/teachers/available-for-homeroom', (req, res) => {
     });
 });
 // POST: Login Handler
-app.post('/login', (req, res) => {
-    const { email, password } = req.body;
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+  // Notice the LEFT JOIN! We connect the tables using their shared email address.
+  const sql = `
+    SELECT u.role, u.name, u.id as user_id, t.id as teacher_id 
+    FROM users u 
+    LEFT JOIN teachers t ON u.email = t.email 
+    WHERE u.email = ? AND u.password = ?
+  `;
 
-    const sql = "SELECT * FROM users WHERE email = ? AND password = ?";
-    
-    db.query(sql, [email, password], (err, data) => {
-        if (err) {
-            console.error("Login Error:", err);
-            return res.status(500).json({ message: "Server Error" });
-        }
+  db.query(sql, [email, password], (err, data) => {
+    if (err) {
+      console.error("Login Error:", err);
+      return res.status(500).json({ message: "Server Error" });
+    }
 
-        if (data.length > 0) {
-            const user = data[0];
-            // Return success and the user's role so frontend knows where to redirect
-            return res.json({ 
-                status: "Success", 
-                role: user.role, 
-                name: user.name,
-                id: user.id
-            });
-        
-        } else {
-            return res.status(401).json({ message: "Invalid email or password" });
-        }
-    });
+    if (data.length > 0) {
+      const user = data[0];
+
+      // The magic: If the logged-in user is a teacher, send back their 'teacher_id' (1).
+      // If they are an admin or principal, send back their normal 'user_id' (1 or 5).
+      const correctId =
+        user.role === "teacher" ? user.teacher_id : user.user_id;
+
+      // Return success and the user's role so frontend knows where to redirect
+      return res.json({
+        status: "Success",
+        role: user.role,
+        id: correctId,
+        name: user.name,
+      });
+    } else {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+  });
 });
 
 // --- USER ACCOUNT MANAGEMENT ---
