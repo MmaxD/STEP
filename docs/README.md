@@ -3,8 +3,8 @@ layout: home
 permalink: index.html
 
 # Please update this with your repository name and project title
-repository-name: eYY-co2060-project-template
-title: Project Template
+repository-name: step-school-management
+title: STEP School Management System
 ---
 
 [comment]: # "This is the standard layout for the project, but you can clean this and use your own template, and add more information required for your own project"
@@ -19,14 +19,15 @@ If your followed all the given instructions correctly, your repository will be a
 
 A HTML template integrated with the given GitHub repository templates, based on github.com/cepdnaclk/eYY-project-theme . If you like to remove this default theme and make your own web page, you can remove the file, docs/_config.yml and create the site using HTML. -->
 
-# Project Title
+# STEP School Management System
 
 ---
 
 ## Team
--  eNumber, Name, [email](mailto:name@email.com)
--  eNumber, Name, [email](mailto:name@email.com)
--  eNumber, Name, [email](mailto:name@email.com)
+- E/22/303, Malindu Dinal Rajapaksha, [email](e22303@eng.pdn.ac.lk)
+- E/22/296, Miyuru Priyashanka, [email](e22296@eng.pdn.ac.lk)
+- E/22/301, Janith Rajakaruna, [email](e22301@eng.pdn.ac.lk)
+- E/22/328, Anidu Rathnayaka, [email](e22328@eng.pdn.ac.lk)
 
 <!-- Image (photo/drawing of the final hardware) should be here -->
 
@@ -35,33 +36,78 @@ A HTML template integrated with the given GitHub repository templates, based on 
 <!-- ![Sample Image](./images/sample.png) -->
 
 #### Table of Contents
-1. [Introduction](#introduction)
-2. [Solution Architecture](#solution-architecture )
-3. [Software Designs](#hardware-and-software-designs)
-4. [Testing](#testing)
-5. [Conclusion](#conclusion)
-6. [Links](#links)
+- [STEP School Management System](#step-school-management-system)
+  - [Team](#team)
+      - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Solution Architecture](#solution-architecture)
+  - [Software Designs](#software-designs)
+    - [Components](#components)
+    - [UI Components](#ui-components)
+  - [Testing](#testing)
+    - [Unit Testing](#unit-testing)
+    - [Integration Testing](#integration-testing)
+    - [Results](#results)
+  - [Conclusion](#conclusion)
+  - [Links](#links)
 
 ## Introduction
 
-Description of the real world problem and solution, impact
+The STEP School Management System is a comprehensive web-based application designed to streamline school administration and academic management. It addresses the challenges of manual record-keeping and communication in educational institutions by providing digital dashboards for students, teachers, principals, and administrators.
 
+The system enables efficient management of student records, grading, class assignments, timetable creation, and user account administration. It aims to improve communication between stakeholders and reduce administrative overhead, ultimately enhancing the educational experience.
 
 ## Solution Architecture
 
-High level diagram + description
+The system follows a client-server architecture:
+
+- **Frontend**: Built with React and Vite for fast development and deployment. Styled using Tailwind CSS and custom themes for a responsive user interface.
+- **Backend**: Node.js server handling API requests and data management.
+- **Database**: Integrated data storage for user accounts, student records, grades, and schedules.
+
+High-level diagram:
+
+<!-- Add architecture diagram here -->
 
 ## Software Designs
 
-Detailed designs with many sub-sections
+### Components
+- **Authentication**: Login system with role-based access (Student, Teacher, Principal, Admin).
+- **Dashboards**: Customized interfaces for different user roles:
+  - Student Dashboard: View marks, timetable, placements.
+  - Teacher Dashboard: Grading, class management.
+  - Principal Dashboard: Overview of school activities.
+  - Admin Dashboard: User management, system configuration.
+- **Features**:
+  - Student Placement
+  - Timetable Builder
+  - Class Manager
+  - Homeroom Management
+  - Marks Entry and Grading
+
+### UI Components
+Utilizes shadcn/ui components for consistent and accessible design.
 
 ## Testing
 
-Testing done on software : detailed + summarized results
+### Unit Testing
+- Component tests using React Testing Library.
+- API endpoint tests for the backend server.
+
+### Integration Testing
+- End-to-end testing of user workflows, such as login, grading, and timetable creation.
+
+### Results
+- All critical features tested and verified.
+- Performance benchmarks met for concurrent users.
 
 ## Conclusion
 
-What was achieved, future developments, commercialization plans
+The STEP School Management System successfully provides a digital solution for school administration. Key achievements include role-based access control, comprehensive dashboards, and modular component design.
+
+Future developments may include mobile app integration, advanced analytics, and integration with external systems.
+
+Commercialization plans involve offering the system as SaaS for educational institutions.
 
 ## Links
 
