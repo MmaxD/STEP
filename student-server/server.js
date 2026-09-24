@@ -157,6 +157,17 @@ db.getConnection((err, connection) => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
   ];
+  // Create default admin account if it doesn't exist or fix its password
+    const adminEmail = "admin@school.edu";
+    db.query("SELECT * FROM users WHERE email = ?", [adminEmail], async (err, results) => {
+      if (!err && results.length === 0) {
+        const hashedPassword = await bcrypt.hash("admin123", 10);
+        db.query(
+          "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+          ["Principal Skinner", adminEmail, hashedPassword, "principal"]
+        );
+      }
+    });
 
   // Execute all table creations sequentially
   const initializeDatabase = async () => {
