@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-export const API_BASE_URL = "https://step-58cj.onrender.com";
+import { API_BASE_URL } from "../../apiConfig";
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mail, Phone, TrendingUp, Target, Award, Brain, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -24,17 +24,47 @@ export function EnhancedStudentDashboard() { // Defaulting to ID 1 for testing
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch data from your backend
-    fetch(`${API_BASE_URL}/student-dashboard/${studentId}`)
-      .then(res => res.json())
-      .then(result => {
+    const fetchAnalytics = async () => {
+      try {
+        let targetId = studentId;
+
+        // 1. If no ID is in the URL, find the logged-in student's ID using their email
+        if (!targetId) {
+          const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+          if (currentUser.email) {
+            const studentRes = await fetch(`${API_BASE_URL}/students`);
+            const students = await studentRes.json();
+            const myRecord = students.find(
+              (s: any) => s.email === currentUser.email,
+            );
+
+            if (myRecord) {
+              targetId = myRecord.id;
+            }
+          }
+        }
+
+        // 2. If we still have no ID, stop loading to show the "not found" screen
+        if (!targetId) {
+          setLoading(false);
+          return;
+        }
+
+        // 3. Fetch the analytics data using the resolved ID
+        const res = await fetch(
+          `${API_BASE_URL}/student-dashboard/${targetId}`,
+        );
+        const result = await res.json();
+
         setData(result);
-        setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error("Error fetching dashboard:", err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchAnalytics();
   }, [studentId]);
 
   if (loading) {
@@ -226,8 +256,7 @@ export function EnhancedStudentDashboard() { // Defaulting to ID 1 for testing
                 <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center">
                   <Brain className="h-4 w-4 text-white" />
                 </div>
-                <CardTitle>AI-Powered Focus Areas</CardTitle>
-                <Badge className="ml-auto bg-gradient-to-r from-cyan-500 to-blue-500 text-white">AI Insights</Badge>
+                <CardTitle>Focus Areas</CardTitle>
               </div>
             </CardHeader>
             <CardContent>

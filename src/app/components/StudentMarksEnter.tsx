@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { X, BookOpen } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, BookOpen, Users, Calendar, CheckCircle2, Clock, BarChart3, Award } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 type Status = 'submitted' | 'graded' | 'late';
 
 interface Student {
@@ -26,16 +26,6 @@ type MarksStore = {
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const SUBJECTS = [
-  'Mathematics',
-  'Science',
-  'English',
-  'History',
-  'Art',
-  'Physical Ed',
-];
-
 const AVATAR_COLORS = [
   'bg-blue-100 text-blue-800',
   'bg-teal-100 text-teal-800',
@@ -46,28 +36,7 @@ const AVATAR_COLORS = [
   'bg-rose-100 text-rose-800',
 ];
 
-const INITIAL_STUDENTS: Student[] = [
-  { id: 1, name: 'Emily Chen',        initials: 'EC', status: 'submitted', studentId: 'STU-2024-1841' },
-  { id: 2, name: 'Michael Rodriguez', initials: 'MR', status: 'graded',    studentId: 'STU-2024-1842' },
-  { id: 3, name: 'Sarah Johnson',     initials: 'SJ', status: 'submitted', studentId: 'STU-2024-1843' },
-  { id: 4, name: 'David Kim',         initials: 'DK', status: 'late',      studentId: 'STU-2024-1844' },
-  { id: 5, name: 'Jessica Martinez',  initials: 'JM', status: 'graded',    studentId: 'STU-2024-1845' },
-  { id: 6, name: 'Ryan Thompson',     initials: 'RT', status: 'submitted', studentId: 'STU-2024-1846' },
-  { id: 7, name: 'Amanda Lee',        initials: 'AL', status: 'graded',    studentId: 'STU-2024-1847' },
-];
-
-const INITIAL_MARKS: MarksStore = {
-  1: { Mathematics: '', Science: '', English: '', History: '', Art: '', 'Physical Ed': '' },
-  2: { Mathematics: 95, Science: 88, English: 76, History: 90, Art: 82, 'Physical Ed': 79 },
-  3: { Mathematics: '', Science: '', English: '', History: '', Art: '', 'Physical Ed': '' },
-  4: { Mathematics: '', Science: '', English: '', History: '', Art: '', 'Physical Ed': '' },
-  5: { Mathematics: 88, Science: 72, English: 91, History: 85, Art: 68, 'Physical Ed': 94 },
-  6: { Mathematics: '', Science: '', English: '', History: '', Art: '', 'Physical Ed': '' },
-  7: { Mathematics: 92, Science: 85, English: 88, History: 79, Art: 95, 'Physical Ed': 83 },
-};
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
@@ -75,13 +44,14 @@ function ordinal(n: number): string {
 }
 
 function getLetterGrade(pct: number): { label: string; color: string } {
-  if (pct >= 90) return { label: 'A — Excellent',        color: 'bg-green-100 text-green-800' };
-  if (pct >= 75) return { label: 'B — Good',             color: 'bg-blue-100 text-blue-800'   };
-  if (pct >= 55) return { label: 'C — Average',          color: 'bg-amber-100 text-amber-800' };
-  return           { label: 'F — Needs improvement', color: 'bg-red-100 text-red-800'     };
+  if (pct >= 90) return { label: 'A', color: 'text-green-600 bg-green-100' };
+  if (pct >= 75) return { label: 'B', color: 'text-blue-600 bg-blue-100' };
+  if (pct >= 55) return { label: 'C', color: 'text-amber-600 bg-amber-100' };
+  return { label: 'F', color: 'text-red-600 bg-red-100' };
 }
 
-function calcAverage(subjectMarks: SubjectMarks): number | null {
+function calcAverage(subjectMarks: SubjectMarks | undefined): number | null {
+  if (!subjectMarks) return null;
   const values = Object.values(subjectMarks).filter(
     (v): v is number => v !== '' && !isNaN(Number(v))
   );
@@ -94,31 +64,6 @@ function calcTotal(subjectMarks: SubjectMarks): number {
     .filter((v): v is number => v !== '' && !isNaN(Number(v)))
     .reduce((a, b) => a + b, 0);
 }
-
-function getStatusBadge(status: Status) {
-  const map: Record<Status, { className: string; label: string }> = {
-    submitted: { className: 'bg-blue-100 text-blue-700 hover:bg-blue-100',   label: 'Submitted' },
-    graded:    { className: 'bg-green-100 text-green-700 hover:bg-green-100', label: 'Graded'    },
-    late:      { className: 'bg-red-100 text-red-700 hover:bg-red-100',       label: 'Late'      },
-  };
-  const { className, label } = map[status];
-  return <Badge className={`text-xs ${className}`}>{label}</Badge>;
-}
-
-function getProgressColor(pct: number): string {
-  if (pct >= 75) return 'bg-green-500';
-  if (pct >= 55) return 'bg-amber-500';
-  return 'bg-red-500';
-}
-
-function getPlaceColor(rank: number): string {
-  if (rank === 1) return 'text-amber-700 font-semibold';
-  if (rank === 2) return 'text-blue-700 font-semibold';
-  if (rank === 3) return 'text-rose-700 font-semibold';
-  return 'text-gray-500';
-}
-
-// ─── Rank computation ─────────────────────────────────────────────────────────
 
 function computeRanks(
   students: Student[],
@@ -135,88 +80,102 @@ function computeRanks(
   return { rankMap, rankedTotal: ranked.length };
 }
 
-// ─── Student Row ──────────────────────────────────────────────────────────────
-
-interface StudentRowProps {
-  student: Student;
-  colorIndex: number;
-  marksStore: MarksStore;
-  rank: number | null;
-  onClick: () => void;
-}
-
-function StudentRow({ student, colorIndex, marksStore, rank, onClick }: StudentRowProps) {
-  const avg = calcAverage(marksStore[student.id]);
-  const grade = avg !== null ? getLetterGrade(avg) : null;
-  const hasMarks = avg !== null;
-
-  return (
-    <div
-      onClick={onClick}
-      className={`flex items-center gap-3 bg-white border rounded-xl px-4 py-3 cursor-pointer transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md ${
-        hasMarks
-          ? 'border-green-200 hover:border-green-400'
-          : 'border-gray-200 hover:border-amber-300'
-      }`}
-    >
-      {/* Place */}
-      <div className={`w-9 text-sm shrink-0 ${rank !== null ? getPlaceColor(rank) : 'text-gray-300'}`}>
-        {rank !== null ? ordinal(rank) : '—'}
-      </div>
-
-      {/* Avatar */}
-      <Avatar className="h-9 w-9 shrink-0">
-        <AvatarFallback className={`text-xs font-medium ${AVATAR_COLORS[colorIndex % AVATAR_COLORS.length]}`}>
-          {student.initials}
-        </AvatarFallback>
-      </Avatar>
-
-      {/* Name + ID */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{student.name}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{student.studentId}</p>
-      </div>
-
-      {/* Badge + avg */}
-      <div className="flex flex-col items-end gap-1 shrink-0">
-        {getStatusBadge(student.status)}
-        {avg !== null && grade ? (
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-medium text-gray-900">{avg}</span>
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${grade.color}`}>
-              {grade.label.split(' ')[0]}
-            </span>
-          </div>
-        ) : (
-          <span className="text-xs text-amber-500">No marks yet</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
-
 export function StudentMarkEntry() {
-  const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
-  const [marksStore, setMarksStore] = useState<MarksStore>(INITIAL_MARKS);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [marksStore, setMarksStore] = useState<MarksStore>({});
+  
+  // Dynamic Subjects from DB
+  const [subjectsList, setSubjectsList] = useState<string[]>([]);
+  const [subjectMap, setSubjectMap] = useState<Record<string, number>>({});
+  
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [draftMarks, setDraftMarks] = useState<SubjectMarks>({});
+  
+  const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-  // ── Ranks ────────────────────────────────────────────────────────────────────
+  // 1. Fetch class data and subjects from backend on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      const teacherId = localStorage.getItem("loggedInUserId") || "1";
+      try {
+        const subRes = await fetch("http://localhost:8081/api/subjects");
+        const subData = await subRes.json();
+        
+        const fetchedSubjects: string[] = [];
+        const fetchedMap: Record<string, number> = {};
+        
+        subData.forEach((row: any) => {
+          if (!fetchedSubjects.includes(row.subject_name)) {
+            fetchedSubjects.push(row.subject_name);
+          }
+          fetchedMap[row.subject_name] = row.id;
+        });
+        
+        setSubjectsList(fetchedSubjects);
+        setSubjectMap(fetchedMap);
 
+        const stdRes = await fetch(`http://localhost:8081/api/homeroom/${teacherId}/students`);
+        const stdData = await stdRes.json();
+
+        const formattedStudents: Record<number, Student> = {};
+        const formattedMarks: MarksStore = {};
+
+        stdData.forEach((row: any) => {
+          if (!formattedStudents[row.id]) {
+            const initials = row.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+            formattedStudents[row.id] = {
+              id: row.id,
+              name: row.name,
+              initials: initials,
+              status: 'submitted',
+              studentId: `STU-2024-${1000 + row.id}`
+            };
+            
+            const emptyMarks: SubjectMarks = {};
+            fetchedSubjects.forEach(sub => { emptyMarks[sub] = ''; });
+            formattedMarks[row.id] = emptyMarks;
+          }
+
+          if (row.subject_name && row.score !== null) {
+            formattedMarks[row.id][row.subject_name] = row.score;
+            formattedStudents[row.id].status = 'graded';
+          }
+        });
+
+        setStudents(Object.values(formattedStudents));
+        setMarksStore(formattedMarks);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // ── Computations ─────────────────────────────────────────────────────────────
   const { rankMap, rankedTotal } = computeRanks(students, marksStore);
 
-  // ── Split + sort ─────────────────────────────────────────────────────────────
-
   const pendingStudents = students.filter(s => calcAverage(marksStore[s.id]) === null);
-
   const rankedStudents = students
     .filter(s => calcAverage(marksStore[s.id]) !== null)
     .sort((a, b) => (rankMap[a.id] ?? 99) - (rankMap[b.id] ?? 99));
 
-  // ── Modal helpers ────────────────────────────────────────────────────────────
+  // Combine lists for main view (Pending first, then Graded)
+  const allStudentsList = [...pendingStudents, ...rankedStudents];
 
+  // Class Stats
+  const totalStudents = students.length;
+  const gradedCount = rankedStudents.length;
+  const pendingCount = pendingStudents.length;
+  const overallAvg = rankedStudents.length > 0 
+    ? Math.round(rankedStudents.reduce((acc, s) => acc + (calcAverage(marksStore[s.id]) || 0), 0) / rankedStudents.length)
+    : 0;
+  const progressPct = totalStudents > 0 ? Math.round((gradedCount / totalStudents) * 100) : 0;
+
+  const topPerformers = rankedStudents.slice(0, 3);
+
+  // ── Modal helpers ────────────────────────────────────────────────────────────
   function openModal(student: Student) {
     setSelectedStudent(student);
     setDraftMarks({ ...marksStore[student.id] });
@@ -227,13 +186,50 @@ export function StudentMarkEntry() {
     setDraftMarks({});
   }
 
-  function saveMarks() {
+  // 2. CONNECTED POST ROUTE: Save to your backend
+  async function saveMarks() {
     if (!selectedStudent) return;
-    setMarksStore(prev => ({ ...prev, [selectedStudent.id]: { ...draftMarks } }));
-    setStudents(prev =>
-      prev.map(s => s.id === selectedStudent.id ? { ...s, status: 'graded' } : s)
-    );
-    closeModal();
+
+    const teacherId = localStorage.getItem("loggedInUserId") || "1";
+
+    const marksPayload = Object.entries(draftMarks)
+      .filter(([_, score]) => score !== '') 
+      .map(([subjectName, score]) => ({
+        subject_id: subjectMap[subjectName],
+        score: Number(score)
+      }));
+
+    if (marksPayload.length === 0) {
+      closeModal();
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8081/api/student-marks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacher_id: teacherId,
+          student_id: selectedStudent.id,
+          marks: marksPayload
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setMarksStore(prev => ({ ...prev, [selectedStudent.id]: { ...draftMarks } }));
+        setStudents(prev =>
+          prev.map(s => s.id === selectedStudent.id ? { ...s, status: 'graded' } : s)
+        );
+        closeModal();
+      } else {
+        alert(`Error: ${result.error}`); 
+      }
+    } catch (error) {
+      console.error("Failed to save marks", error);
+      alert("Network error. Could not reach the server.");
+    }
   }
 
   function handleMarkChange(subject: string, value: string) {
@@ -241,192 +237,281 @@ export function StudentMarkEntry() {
     setDraftMarks(prev => ({ ...prev, [subject]: parsed }));
   }
 
-  // ── Draft summary ────────────────────────────────────────────────────────────
-
   const draftTotal  = calcTotal(draftMarks);
   const filledCount = Object.values(draftMarks).filter(v => v !== '').length;
-  const draftPct    = filledCount > 0 ? Math.round(draftTotal / SUBJECTS.length) : 0;
-  const draftGrade  = filledCount > 0 ? getLetterGrade(draftPct) : null;
-
+  const draftPct    = filledCount > 0 && subjectsList.length > 0 ? Math.round(draftTotal / subjectsList.length) : 0;
+  
   const selectedIndex  = selectedStudent ? students.findIndex(s => s.id === selectedStudent.id) : 0;
   const selectedRank   = selectedStudent ? (rankMap[selectedStudent.id] ?? null) : null;
 
   // ── Render ───────────────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50/50 p-8 font-sans">
+      <div className="max-w-[1400px] mx-auto space-y-6">
 
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <BookOpen className="h-5 w-5 text-blue-600" />
-          <h1 className="text-2xl text-gray-900">Student Marks</h1>
-        </div>
-        <p className="text-sm text-gray-500">Click a student to add or update marks</p>
-      </div>
-
-      {/* Two columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* ── Pending column ── */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-            <h2 className="text-sm font-medium text-gray-700">Pending</h2>
-            <span className="text-xs text-gray-400">({pendingStudents.length} students)</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {pendingStudents.map(student => (
-              <StudentRow
-                key={student.id}
-                student={student}
-                colorIndex={students.findIndex(s => s.id === student.id)}
-                marksStore={marksStore}
-                rank={null}
-                onClick={() => openModal(student)}
-              />
-            ))}
-            {pendingStudents.length === 0 && (
-              <div className="py-10 text-center text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
-                All students have been marked!
+        {/* 1. Header Card (Matching Theme) */}
+        <Card className="border-gray-200 shadow-sm rounded-xl overflow-hidden bg-white">
+          <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-teal-600 flex items-center justify-center shrink-0 shadow-inner">
+                <BookOpen className="h-6 w-6 text-white" />
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Marks updated column (sorted by rank) ── */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-            <h2 className="text-sm font-medium text-gray-700">Marks Updated</h2>
-            <span className="text-xs text-gray-400">({rankedStudents.length} students)</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {rankedStudents.map(student => (
-              <StudentRow
-                key={student.id}
-                student={student}
-                colorIndex={students.findIndex(s => s.id === student.id)}
-                marksStore={marksStore}
-                rank={rankMap[student.id] ?? null}
-                onClick={() => openModal(student)}
-              />
-            ))}
-            {rankedStudents.length === 0 && (
-              <div className="py-10 text-center text-sm text-gray-400 bg-white border border-dashed border-gray-200 rounded-xl">
-                No marks added yet
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Grade 10-A Marks Entry</h1>
+                <p className="text-sm text-gray-500">Homeroom Management • Term 1</p>
               </div>
-            )}
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm text-sm font-medium text-gray-700">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                {currentDate}
+              </div>
+              <Button 
+                onClick={() => window.print()}
+                className="bg-teal-600 hover:bg-teal-700 text-white shadow-sm font-medium print:hidden"
+              >
+                Print Grades
+              </Button>
+            </div>
           </div>
-        </div>
 
-      </div>
+          {/* 2. Metric Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 pt-0">
+            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-green-700 mb-1 text-sm font-medium">
+                <CheckCircle2 className="h-4 w-4" /> Graded
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{gradedCount}</div>
+            </div>
 
-      {/* ── Modal ── */}
-      {selectedStudent && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-          onClick={e => { if (e.target === e.currentTarget) closeModal(); }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-amber-700 mb-1 text-sm font-medium">
+                <Clock className="h-4 w-4" /> Pending
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{pendingCount}</div>
+            </div>
 
-            {/* Modal header */}
-            <div className="flex items-start justify-between p-5 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback
-                    className={`text-sm font-medium ${AVATAR_COLORS[selectedIndex % AVATAR_COLORS.length]}`}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-blue-700 mb-1 text-sm font-medium">
+                <BarChart3 className="h-4 w-4" /> Class Average
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{overallAvg > 0 ? `${overallAvg}%` : '-'}</div>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-gray-600 mb-1 text-sm font-medium">
+                <Users className="h-4 w-4" /> Total Students
+              </div>
+              <div className="text-2xl font-bold text-gray-900">{totalStudents}</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Main Content Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* LEFT COLUMN: Student List */}
+          <Card className="lg:col-span-2 border-gray-200 shadow-sm rounded-xl bg-white overflow-hidden">
+            <CardHeader className="border-b border-gray-100 bg-white pb-4">
+              <CardTitle className="text-lg font-semibold text-gray-800">Student Roster</CardTitle>
+            </CardHeader>
+            <div className="flex flex-col">
+              {allStudentsList.map((student, index) => {
+                const avg = calcAverage(marksStore[student.id]);
+                const rank = rankMap[student.id] ?? null;
+                const isGraded = avg !== null;
+
+                return (
+                  <div 
+                    key={student.id} 
+                    className="flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors group"
                   >
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-10 w-10 border border-gray-200 shadow-sm">
+                        <AvatarFallback className={`text-sm font-medium ${AVATAR_COLORS[index % AVATAR_COLORS.length]}`}>
+                          {student.initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900">{student.name}</h4>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                          <span>{student.studentId}</span>
+                          {isGraded && (
+                            <>
+                              <span>•</span>
+                              <span>Avg: <strong>{avg}%</strong></span>
+                              {rank && (
+                                <>
+                                  <span>•</span>
+                                  <span>Rank: {ordinal(rank)}</span>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {isGraded ? (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-md border border-green-200 bg-green-50 text-green-700 text-xs font-medium">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Graded
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-md border border-amber-200 bg-amber-50 text-amber-700 text-xs font-medium">
+                          <Clock className="h-3.5 w-3.5" /> Pending
+                        </div>
+                      )}
+                      
+                      <button 
+                        onClick={() => openModal(student)}
+                        className={`print:hidden text-xs px-4 py-1.5 rounded-md font-medium transition-colors border ${
+                          isGraded 
+                            ? 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100' 
+                            : 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+                        }`}
+                      >
+                        {isGraded ? 'Edit Marks' : 'Enter Marks'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {allStudentsList.length === 0 && (
+                <div className="p-8 text-center text-gray-500 text-sm">No students found.</div>
+              )}
+            </div>
+          </Card>
+
+          {/* RIGHT COLUMN: Sidebar Overview */}
+          <div className="space-y-6">
+            
+            {/* Overview Donut/Progress Placeholder */}
+            <Card className="border-gray-200 shadow-sm rounded-xl bg-white">
+              <CardHeader className="border-b border-gray-100 pb-3">
+                <CardTitle className="text-base font-semibold text-gray-800">Grading Progress</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 flex flex-col items-center justify-center">
+                <div className="relative w-32 h-32 flex items-center justify-center rounded-full border-[12px] border-gray-100 mb-2">
+                   {/* Fake Progress Ring */}
+                   <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <path
+                        className="text-teal-500"
+                        strokeDasharray={`${progressPct}, 100`}
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                    </svg>
+                    <span className="text-3xl font-bold text-gray-800">{progressPct}%</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">{gradedCount} of {totalStudents} students graded</p>
+              </CardContent>
+            </Card>
+
+            {/* Top Performers (Matches "Frequent Absentees" widget theme) */}
+            <Card className="border-teal-100 shadow-sm rounded-xl bg-gradient-to-b from-teal-50/50 to-white">
+              <CardHeader className="border-b border-teal-100/50 pb-3">
+                <CardTitle className="text-base font-semibold text-teal-800 flex items-center gap-2">
+                  <Award className="h-4 w-4" /> Top Performers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                {topPerformers.length > 0 ? topPerformers.map((student, idx) => (
+                  <div key={student.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-teal-100 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs bg-teal-100 text-teal-700 font-medium">
+                          {student.initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{student.name}</p>
+                        <p className="text-[10px] text-gray-500">Rank: {ordinal(idx + 1)}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-teal-600">{calcAverage(marksStore[student.id])}%</p>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm text-gray-500 text-center py-4">Waiting for grades to be entered.</p>
+                )}
+              </CardContent>
+            </Card>
+
+          </div>
+        </div>
+      </div>
+
+      {/* ── Modal (Slightly themed) ── */}
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-gray-900/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm print:hidden"
+             onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-gray-100">
+
+            <div className="flex items-start justify-between p-5 border-b border-gray-100 bg-gray-50/50">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 shadow-sm border border-gray-200">
+                  <AvatarFallback className={`text-sm font-medium ${AVATAR_COLORS[selectedIndex % AVATAR_COLORS.length]}`}>
                     {selectedStudent.initials}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-base font-medium text-gray-900">{selectedStudent.name}</h2>
-                  <p className="text-xs text-gray-400">{selectedStudent.studentId}</p>
-                  {selectedRank !== null ? (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Place:{' '}
-                      <span className={`font-medium ${getPlaceColor(selectedRank)}`}>
-                        {ordinal(selectedRank)}
-                      </span>
-                      {' '}out of {rankedTotal} students
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-0.5">Rank will appear after saving marks</p>
-                  )}
+                  <h2 className="text-base font-bold text-gray-900">{selectedStudent.name}</h2>
+                  <p className="text-xs text-gray-500">{selectedStudent.studentId}</p>
                 </div>
               </div>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1 transition-colors"
-              >
-                <X className="h-4 w-4" />
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1 transition-colors">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Subject inputs */}
-            <div className="p-5">
-              <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide">Marks out of 100</p>
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                {SUBJECTS.map(subject => (
-                  <div key={subject}>
-                    <label className="text-xs text-gray-500 mb-1 block">{subject}</label>
-                    <div className="flex items-center gap-1.5">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Subject Scores</p>
+                <span className="text-[10px] text-gray-400">Max 100</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {subjectsList.map(subject => (
+                  <div key={subject} className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-700 block">{subject}</label>
+                    <div className="relative">
                       <Input
                         type="number"
                         min={0}
                         max={100}
-                        placeholder="0–100"
-                        value={draftMarks[subject] === '' ? '' : draftMarks[subject]}
+                        placeholder="0"
+                        value={draftMarks[subject] === '' || draftMarks[subject] === undefined ? '' : draftMarks[subject]}
                         onChange={e => handleMarkChange(subject, e.target.value)}
-                        className="h-9 text-sm"
+                        className="h-10 text-sm font-medium pr-8 focus:ring-teal-500 focus:border-teal-500"
                       />
-                      <span className="text-xs text-gray-400 whitespace-nowrap">/100</span>
+                      <span className="absolute right-3 top-2.5 text-xs text-gray-400">%</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-gray-100 mb-4" />
-
-              {/* Summary */}
-              <div className="flex items-center justify-between mb-3">
+              <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-gray-500">Total Score</p>
-                  {draftGrade ? (
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block ${draftGrade.color}`}>
-                      {draftGrade.label}
-                    </span>
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-1">Enter marks above</p>
-                  )}
+                  <p className="text-sm font-medium text-gray-700">Calculated Average</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{filledCount} of {subjectsList.length} subjects entered</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-medium text-gray-900">
-                    {filledCount > 0 ? draftTotal : '—'}
-                  </span>
-                  <span className="text-sm text-gray-400">/600</span>
-                  {filledCount > 0 && (
-                    <p className="text-xs text-gray-400 mt-0.5">{draftPct}% average</p>
-                  )}
+                  <span className="text-2xl font-bold text-teal-600">{draftPct}%</span>
                 </div>
               </div>
 
-              {/* Progress bar */}
-              <div className="w-full h-1.5 bg-gray-100 rounded-full mb-5 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${getProgressColor(draftPct)}`}
-                  style={{ width: filledCount > 0 ? `${draftPct}%` : '0%' }}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <Button onClick={saveMarks} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
-                  Save Marks
-                </Button>
-                <Button variant="outline" onClick={closeModal} className="flex-1">
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={closeModal} className="flex-1 font-medium border-gray-200">
                   Cancel
+                </Button>
+                <Button onClick={saveMarks} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-medium shadow-sm">
+                  Save Marks
                 </Button>
               </div>
             </div>

@@ -1,4 +1,5 @@
 import { Button } from './ui/button';
+import { API_BASE } from '@/config';
 import { 
   LayoutDashboard, Users, BookCheck, Smartphone, 
   LineChart, Shield, School, ClipboardCheck 

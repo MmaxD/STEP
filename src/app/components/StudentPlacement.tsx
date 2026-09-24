@@ -6,6 +6,7 @@ import { Input } from '@/app/components/ui/input';
 import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import { Progress } from '@/app/components/ui/progress';
+import { API_BASE } from '@/config';
 import {
   Select,
   SelectContent,

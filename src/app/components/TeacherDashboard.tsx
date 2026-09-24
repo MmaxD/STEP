@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "../../apiConfig";
 import {
-  LayoutDashboard,
-  BookOpen,
-  GraduationCap,
-  BarChart3,
   Check,
   Bell,
   Calendar,
@@ -20,17 +16,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/app/components/ui/avatar";
-import { Separator } from "@/app/components/ui/separator";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
-
-// Navy Blue: #1e3a8a, Teal: #14b8a6
 
 interface ClassSession {
   id: string;
@@ -46,7 +38,7 @@ interface Student {
   id: string;
   name: string;
   photo: string;
-  gpa: number;
+  gpa: number | string;
   attendance: number;
   performanceData: number[];
   gpaData: { month: string; gpa: number }[];
@@ -64,143 +56,8 @@ interface Announcement {
   priority: "high" | "medium" | "low";
 }
 
-const homeroomStudents: Student[] = [
-  {
-    id: "S001",
-    name: "Emily Chen",
-    photo:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-    gpa: 3.8,
-    attendance: 96,
-    performanceData: [75, 78, 82, 85, 88, 90, 92],
-    gpaData: [
-      { month: "Sep", gpa: 3.5 },
-      { month: "Oct", gpa: 3.6 },
-      { month: "Nov", gpa: 3.7 },
-      { month: "Dec", gpa: 3.8 },
-    ],
-    focusAreas: [
-      { topic: "Calculus - Integration", status: "needs-attention" },
-      { topic: "Essay Writing", status: "improving" },
-      { topic: "Lab Reports", status: "good" },
-    ],
-  },
-  {
-    id: "S002",
-    name: "Michael Rodriguez",
-    photo:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-    gpa: 3.6,
-    attendance: 94,
-    performanceData: [70, 72, 75, 78, 80, 82, 85],
-    gpaData: [
-      { month: "Sep", gpa: 3.3 },
-      { month: "Oct", gpa: 3.4 },
-      { month: "Nov", gpa: 3.5 },
-      { month: "Dec", gpa: 3.6 },
-    ],
-    focusAreas: [
-      { topic: "Physics - Mechanics", status: "improving" },
-      { topic: "Time Management", status: "needs-attention" },
-      { topic: "Group Projects", status: "good" },
-    ],
-  },
-  {
-    id: "S003",
-    name: "Sarah Johnson",
-    photo:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
-    gpa: 3.9,
-    attendance: 98,
-    performanceData: [88, 90, 92, 93, 94, 95, 96],
-    gpaData: [
-      { month: "Sep", gpa: 3.7 },
-      { month: "Oct", gpa: 3.8 },
-      { month: "Nov", gpa: 3.85 },
-      { month: "Dec", gpa: 3.9 },
-    ],
-    focusAreas: [
-      { topic: "Advanced Mathematics", status: "good" },
-      { topic: "Research Skills", status: "good" },
-      { topic: "Public Speaking", status: "improving" },
-    ],
-  },
-  {
-    id: "S004",
-    name: "David Kim",
-    photo:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
-    gpa: 3.5,
-    attendance: 92,
-    performanceData: [68, 70, 72, 75, 78, 80, 82],
-    gpaData: [
-      { month: "Sep", gpa: 3.2 },
-      { month: "Oct", gpa: 3.3 },
-      { month: "Nov", gpa: 3.4 },
-      { month: "Dec", gpa: 3.5 },
-    ],
-    focusAreas: [
-      { topic: "Chemistry - Organic", status: "needs-attention" },
-      { topic: "Study Habits", status: "improving" },
-      { topic: "Lab Safety", status: "good" },
-    ],
-  },
-  {
-    id: "S005",
-    name: "Jessica Martinez",
-    photo:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop",
-    gpa: 3.7,
-    attendance: 95,
-    performanceData: [80, 82, 85, 86, 88, 89, 90],
-    gpaData: [
-      { month: "Sep", gpa: 3.5 },
-      { month: "Oct", gpa: 3.6 },
-      { month: "Nov", gpa: 3.65 },
-      { month: "Dec", gpa: 3.7 },
-    ],
-    focusAreas: [
-      { topic: "History - Analysis", status: "improving" },
-      { topic: "Critical Thinking", status: "good" },
-      { topic: "Exam Preparation", status: "good" },
-    ],
-  },
-];
-
-const announcements: Announcement[] = [
-  {
-    id: "1",
-    title: "Parent-Teacher Meeting",
-    message: "Scheduled for next Saturday at 10:00 AM",
-    time: "2 hours ago",
-    priority: "high",
-  },
-  {
-    id: "2",
-    title: "Grade Submission Deadline",
-    message: "Please submit Q2 grades by Friday, 5:00 PM",
-    time: "5 hours ago",
-    priority: "high",
-  },
-  {
-    id: "3",
-    title: "New Lab Equipment",
-    message: "Science lab has received new microscopes",
-    time: "1 day ago",
-    priority: "medium",
-  },
-  {
-    id: "4",
-    title: "Faculty Workshop",
-    message: "Professional development session on modern teaching methods",
-    time: "2 days ago",
-    priority: "medium",
-  },
-];
-
 const Sparkline = ({ data }: { data: number[] }) => {
   const chartData = data.map((value, index) => ({ index, value }));
-
   return (
     <ResponsiveContainer width={80} height={30}>
       <LineChart data={chartData}>
@@ -231,51 +88,45 @@ const getFocusStatusColor = (status: string) => {
 
 export function TeacherDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [activeNav, setActiveNav] = useState("dashboard");
-
-  // 1. New state for the vertical sidebar schedule
   const [dailySchedule, setDailySchedule] = useState<ClassSession[]>([]);
-
-  // 1. Real-time clock state
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 2. Make the clock tick every 60 seconds
+  // Dynamic Homeroom States
+  const [homeroomClass, setHomeroomClass] = useState<string | null>(null);
+  const [realHomeroomStudents, setRealHomeroomStudents] = useState<Student[]>(
+    [],
+  );
+
+  // NEW: Dynamic Announcements State
+  const [activeAnnouncements, setActiveAnnouncements] = useState<
+    Announcement[]
+  >([]);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Count today's classes (ignoring Free periods and Intervals)
   const validClasses = dailySchedule.filter(
-    (session) => session.subject !== "Free" && session.subject !== "Interval",
+    (s) => s.subject !== "Free" && s.subject !== "Interval",
   ).length;
 
-  // We will set relief to 0 for now until you add a specific relief table to the DB
-  const reliefClasses = dailySchedule.filter(
-    (session) => session.type === "relief",
-  ).length;
+  const reliefClasses = dailySchedule.filter((s) => s.type === "relief").length;
 
-  // 4. Calculate the "Current Period" based on the actual clock time
   const getCurrentSession = () => {
-    const currentHours = currentTime.getHours();
-    const currentMinutes = currentTime.getMinutes();
-    const timeInMinutes = currentHours * 60 + currentMinutes;
-
+    const currentMins = currentTime.getHours() * 60 + currentTime.getMinutes();
     for (const session of dailySchedule) {
       if (!session.time.includes("-")) continue;
-
       const parts = session.time.split("-");
       if (parts.length !== 2) continue;
-
       const parseTime = (timeStr: string) => {
         const [h, m] = timeStr.trim().split(":").map(Number);
         return h * 60 + m;
       };
-
-      const startInMins = parseTime(parts[0]);
-      const endInMins = parseTime(parts[1]);
-
-      if (timeInMinutes >= startInMins && timeInMinutes <= endInMins) {
+      if (
+        currentMins >= parseTime(parts[0]) &&
+        currentMins <= parseTime(parts[1])
+      ) {
         return session;
       }
     }
@@ -289,43 +140,28 @@ export function TeacherDashboard() {
     hour12: true,
   });
 
-
-  // 2. Fetch and transform the database row into vertical sessions
+  // 1. Fetch Timetable
   useEffect(() => {
-    // 1. Get the ID from localStorage
     const teacherId = localStorage.getItem("loggedInUserId") || "1";
-    console.log("Fetching timetable for teacher ID:", teacherId);
-    // 2. Inject it into the URL using backticks ` ` instead of quotes ' '
     fetch(`${API_BASE_URL}/api/timetable/${teacherId}`)
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then((data) => {
-        // Find Monday's schedule (or fallback to the first row)
-        // 1. Ask JavaScript what day of the week it is right now
         const currentDayName = new Date().toLocaleDateString("en-US", {
           weekday: "long",
         });
-
-        // 2. Try to find the matching row in your database for today
         let todayRow = data.find(
           (row: any) => row.day_of_week === currentDayName,
         );
-
-        // 3. Fallback logic: If it's Saturday or Sunday (or a day with no schedule),
-        // let's show Monday's schedule so your UI isn't empty during weekend testing!
-        if (!todayRow) {
+        if (!todayRow)
           todayRow =
             data.find((row: any) => row.day_of_week === "Monday") || data[0];
-        }
 
         if (todayRow) {
           const parsedSessions: ClassSession[] = [];
           let idCounter = 1;
 
-          // Helper function to map a DB column into a ClassSession card
           const addSession = (dbKey: string, timeLabel: string) => {
             const dbValue = todayRow[dbKey];
-
-            // Only create a card if the cell is not empty or "-"
             if (dbValue && dbValue !== "-" && dbValue.trim() !== "") {
               let subject = dbValue;
               let grade = "-";
@@ -335,73 +171,129 @@ export function TeacherDashboard() {
                 ? "relief"
                 : "regular";
 
-              // Split "Math (10-A)" into Subject: "Math" and Grade: "10-A"
               if (dbValue.includes("(") && dbValue.includes(")")) {
                 const parts = dbValue.split("(");
                 subject = parts[0].trim();
                 grade = parts[1].replace(")", "").trim();
               }
 
-              // SMART LOGIC
               let status: "completed" | "current" | "upcoming" = "upcoming";
               const [startStr, endStr] = timeLabel.split(" - ");
-
-              // Convert the class times into pure minutes for easy math
               const startMins =
                 parseInt(startStr.split(":")[0]) * 60 +
                 parseInt(startStr.split(":")[1]);
               const endMins =
                 parseInt(endStr.split(":")[0]) * 60 +
                 parseInt(endStr.split(":")[1]);
+              const currentMins =
+                new Date().getHours() * 60 + new Date().getMinutes();
 
-              // Check the real-world time
-              const now = new Date();
-              const currentMins = now.getHours() * 60 + now.getMinutes();
-
-              if (currentMins > endMins) {
-                status = "completed"; // Time has passed
-              } else if (currentMins >= startMins && currentMins <= endMins) {
-                status = "current"; // We are in this class right now
-              }
+              if (currentMins > endMins) status = "completed";
+              else if (currentMins >= startMins && currentMins <= endMins)
+                status = "current";
 
               parsedSessions.push({
                 id: String(idCounter++),
                 time: timeLabel,
-                subject: subject,
-                grade: grade,
-                room: "-", // Room isn't in DB yet, defaulting to "-"
-                type: type,
-                status: status,
+                subject,
+                grade,
+                room: "-",
+                type,
+                status,
               });
             }
           };
 
-          // Map your specific DB columns to the UI time labels
           addSession("7:45 - 8:25 AM", "07:45 - 08:25");
           addSession("8:25 - 9:05 AM", "08:25 - 09:05");
           addSession("9:05 - 9:45 AM", "09:05 - 09:45");
           addSession("9:45 - 10:25 AM", "09:45 - 10:25");
           addSession("10:25 - 11:05 AM", "10:25 - 11:05");
-          addSession("11:05 - 11:30 AM", "11:05 - 11:30"); // Interval
+          addSession("11:05 - 11:30 AM", "11:05 - 11:30");
           addSession("11:30 - 12:10 PM", "11:30 - 12:10");
           addSession("12:10 - 12:50 PM", "12:10 - 12:50");
           addSession("12:50 - 1:30 PM", "12:50 - 13:30");
 
-          // Update the UI
           setDailySchedule(parsedSessions);
         }
       })
-      .catch((error) => console.error("Error fetching timetable:", error));
+      .catch(console.error);
   }, []);
 
-  const teacherName = localStorage.getItem('userName') || 'Teacher';
+  // 2. Fetch Homeroom Data
+  useEffect(() => {
+    const loadHomeroomData = async () => {
+      const teacherId = localStorage.getItem("loggedInUserId") || "1";
+      try {
+        const hrRes = await fetch(
+          `${API_BASE_URL}/api/teacher-homeroom/${teacherId}`,
+        );
+        const hrData = await hrRes.json();
 
-  const navItems = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { id: "classes", icon: BookOpen, label: "Classes" },
-    { id: "grading", icon: GraduationCap, label: "Grading" },
-    { id: "reports", icon: BarChart3, label: "Reports" },
-  ];
+        if (hrData.hasHomeroom && hrData.className) {
+          setHomeroomClass(hrData.className);
+          const studentsRes = await fetch(
+            `${API_BASE_URL}/homeroom/${encodeURIComponent(hrData.className)}`,
+          );
+          const studentsData = await studentsRes.json();
+
+          if (Array.isArray(studentsData)) {
+            const mappedStudents = studentsData.map((s: any) => ({
+              id: s.studentId
+                ? `STU-${String(s.studentId).padStart(4, "0")}`
+                : "New",
+              name: s.name,
+              photo: `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.name}`,
+              gpa: (Math.random() * (4.0 - 2.8) + 2.8).toFixed(1),
+              attendance: s.attendance_rate
+                ? Math.round(s.attendance_rate)
+                : 100,
+              performanceData: [70, 75, 72, 80, 85, 82, 90],
+              gpaData: [
+                { month: "Sep", gpa: 3.2 },
+                { month: "Oct", gpa: 3.4 },
+                { month: "Nov", gpa: 3.5 },
+                { month: "Dec", gpa: 3.8 },
+              ],
+              focusAreas: [{ topic: "General Academics", status: "good" }],
+            }));
+            setRealHomeroomStudents(mappedStudents);
+          }
+        } else {
+          setHomeroomClass(null);
+        }
+      } catch (err) {
+        console.error("Failed to load homeroom widget data:", err);
+      }
+    };
+    loadHomeroomData();
+  }, []);
+
+  // 3. Fetch Announcements Data
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/announcements`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const formatted = data.map((a: any) => ({
+            id: String(a.id),
+            title: a.title,
+            message: a.message,
+            priority: a.priority,
+            time: new Date(a.created_at).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+          }));
+          setActiveAnnouncements(formatted);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const teacherName = localStorage.getItem("userName") || "Teacher";
 
   return (
     <div
@@ -409,7 +301,7 @@ export function TeacherDashboard() {
       style={{ fontFamily: "Inter, sans-serif" }}
     >
       <div className="flex max-w-[1440px] mx-auto">
-        {/* Column 2 - Daily Schedule */}
+        {/* Daily Schedule Sidebar */}
         <div className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
@@ -489,9 +381,8 @@ export function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Column 3 - Main Content Area */}
+        {/* Main Content Area */}
         <div className="flex-1 p-6 overflow-y-auto space-y-6">
-          {/* Header */}
           <div className="bg-gradient-to-r from-[#1e3a8a] to-[#14b8a6] rounded-xl p-6 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -514,10 +405,7 @@ export function TeacherDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions & Announcements Row */}
-          <div className="grid grid-cols-2 gap-6">
-
-            {/* Announcements */}
+          <div className="grid grid-cols-1 gap-6">
             <Card className="border border-gray-200 shadow-md">
               <CardHeader className="border-b border-gray-100 bg-gray-50">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -531,7 +419,7 @@ export function TeacherDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-3 max-h-[280px] overflow-y-auto">
-                {announcements.map((announcement) => (
+                {activeAnnouncements.map((announcement) => (
                   <div
                     key={announcement.id}
                     className={`p-3 rounded-lg border ${
@@ -558,175 +446,191 @@ export function TeacherDashboard() {
                     </span>
                   </div>
                 ))}
+                {activeAnnouncements.length === 0 && (
+                  <div className="text-center text-sm text-gray-500 py-4">
+                    No recent announcements.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Homeroom Teacher Section */}
-          <Card className="border border-gray-200 shadow-md">
-            <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-[#1e3a8a]/5 to-[#14b8a6]/5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#1e3a8a] to-[#14b8a6]">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">
-                      My Class Performance - Grade 11-A
-                    </CardTitle>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Homeroom Teacher View • 25 Students
-                    </p>
-                  </div>
-                </div>
-                <Badge className="bg-gradient-to-r from-[#1e3a8a] to-[#14b8a6] text-white px-3 py-1">
-                  Homeroom Teacher
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-3">
-                {homeroomStudents.map((student) => (
-                  <div key={student.id}>
-                    <div
-                      onClick={() =>
-                        setSelectedStudent(
-                          selectedStudent?.id === student.id ? null : student,
-                        )
-                      }
-                      className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
-                    >
-                      <Avatar className="h-12 w-12 ring-2 ring-gray-200">
-                        <AvatarImage src={student.photo} />
-                        <AvatarFallback className="bg-gradient-to-br from-[#1e3a8a] to-[#14b8a6] text-white">
-                          {student.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-gray-900">
-                            {student.name}
-                          </h4>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] px-2 py-0"
-                          >
-                            {student.id}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-gray-600">
-                          <span>
-                            GPA:{" "}
-                            <strong style={{ color: "#14b8a6" }}>
-                              {student.gpa}
-                            </strong>
-                          </span>
-                          <span>•</span>
-                          <span>
-                            Attendance: <strong>{student.attendance}%</strong>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-right mr-2">
-                          <div className="text-[10px] text-gray-500 mb-1">
-                            Performance Trend
-                          </div>
-                          <Sparkline data={student.performanceData} />
-                        </div>
-                        <TrendingUp className="h-5 w-5 text-teal-600" />
-                      </div>
+          {/* DYNAMIC HOMEROOM WIDGET */}
+          {homeroomClass && (
+            <Card className="border border-gray-200 shadow-md animate-in fade-in slide-in-from-bottom-4">
+              <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-[#1e3a8a]/5 to-[#14b8a6]/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#1e3a8a] to-[#14b8a6]">
+                      <Users className="h-5 w-5 text-white" />
                     </div>
+                    <div>
+                      <CardTitle className="text-lg">
+                        My Class Performance - {homeroomClass}
+                      </CardTitle>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Homeroom Teacher View • {realHomeroomStudents.length}{" "}
+                        Students
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="bg-gradient-to-r from-[#1e3a8a] to-[#14b8a6] text-white px-3 py-1">
+                    Homeroom Teacher
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  {realHomeroomStudents.map((student) => (
+                    <div key={student.id}>
+                      <div
+                        onClick={() =>
+                          setSelectedStudent(
+                            selectedStudent?.id === student.id ? null : student,
+                          )
+                        }
+                        className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                      >
+                        <Avatar className="h-12 w-12 ring-2 ring-gray-200">
+                          <AvatarImage src={student.photo} />
+                          <AvatarFallback className="bg-gradient-to-br from-[#1e3a8a] to-[#14b8a6] text-white">
+                            {student.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
 
-                    {/* Expanded Student Detail */}
-                    {selectedStudent?.id === student.id && (
-                      <Card className="mt-3 border-2 border-teal-200 bg-gradient-to-r from-teal-50 to-cyan-50 shadow-lg">
-                        <CardContent className="p-6">
-                          <div className="grid grid-cols-2 gap-6">
-                            {/* GPA Trend */}
-                            <div>
-                              <div className="flex items-center gap-2 mb-4">
-                                <TrendingUp className="h-4 w-4 text-teal-600" />
-                                <h4 className="text-sm font-semibold text-gray-900">
-                                  GPA Trend
-                                </h4>
-                              </div>
-                              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                                <ResponsiveContainer width="100%" height={120}>
-                                  <LineChart data={student.gpaData}>
-                                    <Line
-                                      type="monotone"
-                                      dataKey="gpa"
-                                      stroke="#14b8a6"
-                                      strokeWidth={3}
-                                      dot={{ fill: "#14b8a6", r: 4 }}
-                                    />
-                                  </LineChart>
-                                </ResponsiveContainer>
-                                <div className="flex justify-between mt-2">
-                                  {student.gpaData.map((data, idx) => (
-                                    <div key={idx} className="text-center">
-                                      <div className="text-[10px] text-gray-500">
-                                        {data.month}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-semibold text-gray-900">
+                              {student.name}
+                            </h4>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-2 py-0"
+                            >
+                              {student.id}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-600">
+                            <span>
+                              GPA:{" "}
+                              <strong style={{ color: "#14b8a6" }}>
+                                {student.gpa}
+                              </strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Attendance: <strong>{student.attendance}%</strong>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <div className="text-right mr-2">
+                            <div className="text-[10px] text-gray-500 mb-1">
+                              Performance Trend
+                            </div>
+                            <Sparkline data={student.performanceData} />
+                          </div>
+                          <TrendingUp className="h-5 w-5 text-teal-600" />
+                        </div>
+                      </div>
+
+                      {/* Expanded Student Detail */}
+                      {selectedStudent?.id === student.id && (
+                        <Card className="mt-3 border-2 border-teal-200 bg-gradient-to-r from-teal-50 to-cyan-50 shadow-lg">
+                          <CardContent className="p-6">
+                            <div className="grid grid-cols-2 gap-6">
+                              <div>
+                                <div className="flex items-center gap-2 mb-4">
+                                  <TrendingUp className="h-4 w-4 text-teal-600" />
+                                  <h4 className="text-sm font-semibold text-gray-900">
+                                    GPA Trend
+                                  </h4>
+                                </div>
+                                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                                  <ResponsiveContainer
+                                    width="100%"
+                                    height={120}
+                                  >
+                                    <LineChart data={student.gpaData}>
+                                      <Line
+                                        type="monotone"
+                                        dataKey="gpa"
+                                        stroke="#14b8a6"
+                                        strokeWidth={3}
+                                        dot={{ fill: "#14b8a6", r: 4 }}
+                                      />
+                                    </LineChart>
+                                  </ResponsiveContainer>
+                                  <div className="flex justify-between mt-2">
+                                    {student.gpaData.map((data, idx) => (
+                                      <div key={idx} className="text-center">
+                                        <div className="text-[10px] text-gray-500">
+                                          {data.month}
+                                        </div>
+                                        <div className="text-xs font-semibold text-gray-900">
+                                          {data.gpa}
+                                        </div>
                                       </div>
-                                      <div className="text-xs font-semibold text-gray-900">
-                                        {data.gpa}
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex items-center gap-2 mb-4">
+                                  <Target className="h-4 w-4 text-[#1e3a8a]" />
+                                  <h4 className="text-sm font-semibold text-gray-900">
+                                    Focus Areas
+                                  </h4>
+                                </div>
+                                <div className="space-y-2">
+                                  {student.focusAreas.map((area, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={`p-3 rounded-lg border ${getFocusStatusColor(
+                                        area.status,
+                                      )}`}
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold">
+                                          {area.topic}
+                                        </span>
+                                        {area.status === "needs-attention" && (
+                                          <AlertCircle className="h-3 w-3" />
+                                        )}
+                                        {area.status === "improving" && (
+                                          <TrendingUp className="h-3 w-3" />
+                                        )}
+                                        {area.status === "good" && (
+                                          <Check className="h-3 w-3" />
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] mt-1 capitalize">
+                                        {area.status.replace("-", " ")}
                                       </div>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             </div>
-
-                            {/* Focus Areas */}
-                            <div>
-                              <div className="flex items-center gap-2 mb-4">
-                                <Target className="h-4 w-4 text-[#1e3a8a]" />
-                                <h4 className="text-sm font-semibold text-gray-900">
-                                  Focus Areas
-                                </h4>
-                              </div>
-                              <div className="space-y-2">
-                                {student.focusAreas.map((area, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={`p-3 rounded-lg border ${getFocusStatusColor(area.status)}`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs font-semibold">
-                                        {area.topic}
-                                      </span>
-                                      {area.status === "needs-attention" && (
-                                        <AlertCircle className="h-3 w-3" />
-                                      )}
-                                      {area.status === "improving" && (
-                                        <TrendingUp className="h-3 w-3" />
-                                      )}
-                                      {area.status === "good" && (
-                                        <Check className="h-3 w-3" />
-                                      )}
-                                    </div>
-                                    <div className="text-[10px] mt-1 capitalize">
-                                      {area.status.replace("-", " ")}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  ))}
+                  {realHomeroomStudents.length === 0 && (
+                    <div className="text-center p-8 text-gray-500">
+                      No students currently assigned to your homeroom.
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -35,24 +35,23 @@ export function LoginPage({ onLogin }) {
 
         // 2. Check Server Response
         if (response.ok && data.status === "Success") {
-            // Save user info
-            localStorage.setItem('userRole', data.role);
-            localStorage.setItem("loggedInUserId", data.id);
-            console.log("Fetching timetable for teacher ID:", data.id);
-            localStorage.setItem('userName', data.name);
+          // Save user info
+          localStorage.setItem("userRole", data.role);
+          localStorage.setItem("loggedInUserId", data.id);
+          localStorage.setItem("userName", data.name);
 
-            // 3. Navigate based on Role
-            if (data.role === 'principal') {
-                onLogin('principal'); 
-            } else if (data.role === 'teacher') {
-                onLogin('teacherDash'); 
-            }
-            else if (data.role === 'admin') {
-                onLogin('admin'); 
-            } 
-            else {
-                setError("Unknown user role detected.");
-            }
+          // 3. Navigate based on Role (Now passing the email!)
+          if (data.role === "principal") {
+            onLogin("principal", email);
+          } else if (data.role === "teacher") {
+            onLogin("teacherDash", email);
+          } else if (data.role === "admin") {
+            onLogin("admin", email);
+          } else if (data.role === "student") {
+            onLogin("student", email);
+          } else {
+            setError("Unknown user role detected.");
+          }
         } else {
             // Login Failed (Show error on screen)
             setError(data.message || "Invalid email or password");
@@ -76,7 +75,7 @@ export function LoginPage({ onLogin }) {
               <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg">
                 <GraduationCap className="h-10 w-10 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-900">School LMS</h1>
+              <h1 className="text-3xl font-bold text-gray-900">STEP</h1>
               <p className="text-sm text-gray-500 mt-2">Welcome back! Please login to continue.</p>
             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-export const API_BASE_URL = "https://step-58cj.onrender.com";
+import { API_BASE_URL } from "../../apiConfig";
 import { Plus, Users, School, ChevronRight, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
