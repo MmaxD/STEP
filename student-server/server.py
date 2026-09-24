@@ -1,3 +1,4 @@
+import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -157,6 +158,6 @@ def generate_schedule(req: GenerateRequest):
         return {"status": "failed", "message": "Constraint overlap. Workload limits exceeded or impossible room requirements."}
    
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
-
-    #uvicorn server:app --reload
+    # Read the port assigned by Render, default to 8000 for local testing
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port)
