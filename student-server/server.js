@@ -9,9 +9,7 @@ app.use(cors());
 app.use(
   cors({
     origin: [
-      "https://step-lms.netlify.app", // Remove the trailing slash here just to be safe
-      "http://localhost:3000",
-      "http://localhost:5173",
+      "https://step-lms.netlify.app", // Remove the trailing slash here just 
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
