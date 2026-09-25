@@ -202,7 +202,12 @@ export function PrincipalDashboard() {
   
   // Teacher Modals
   const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
-  const [newTeacher, setNewTeacher] = useState({ name: '', email: '', subject: '' });
+  const [newTeacher, setNewTeacher] = useState({ 
+  name: '', 
+  email: '', 
+  subject: '',
+  password: '' 
+});
   const [subjects, setSubjects] = useState<any[]>([]); 
   const [showFacultyList, setShowFacultyList] = useState(false);
   const [faculty, setFaculty] = useState([]);
@@ -336,37 +341,41 @@ export function PrincipalDashboard() {
     } catch (err) { console.error(err); }
   };
 
-  const handleAddTeacher = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTeacher.subject) {
-      alert("Please select a subject.");
-      return;
+const handleAddTeacher = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!newTeacher.subject) {
+    alert("Please select a subject.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/teachers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newTeacher)
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setIsAddTeacherOpen(false);
+      setNewTeacher({ name: '', email: '', subject: '', password: '' });
+      setSuccessDialog({
+        open: true,
+        title: "Teacher Added",
+        message: `${newTeacher.name} has been added to the faculty with login access.`
+      });
+      
+      const dashRes = await fetch(`${API_BASE_URL}/principal/dashboard`);
+      const dashData = await dashRes.json();
+      setDashboardData(dashData);
+    } else {
+      alert(data.message || "Failed to add teacher");
     }
-
-    try {
-        const res = await fetch(`${API_BASE_URL}/teachers`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newTeacher)
-        });
-
-        if (res.ok) {
-            setIsAddTeacherOpen(false);
-            setNewTeacher({ name: '', email: '', subject: '' });
-            setSuccessDialog({
-                open: true,
-                title: "Teacher Added",
-                message: `${newTeacher.name} has been added to the faculty.`
-            });
-            // Refresh dashboard data
-            const dashRes = await fetch(`${API_BASE_URL}/principal/dashboard`);
-            const dashData = await dashRes.json();
-            setDashboardData(dashData);
-        } else {
-            alert("Failed to add teacher");
-        }
-    } catch (err) { console.error(err); }
-  };
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   // --- TRIGGER DELETE MODAL ---
   const initiateDelete = (type: 'class' | 'teacher', id: string) => {
@@ -685,93 +694,89 @@ const handleAutoAssign = () => {
                   >
                     View All
                   </Button>
-                  <Dialog
-                    open={isAddTeacherOpen}
-                    onOpenChange={setIsAddTeacherOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        size="sm"
-                        className="flex-1 text-xs bg-indigo-600 hover:bg-indigo-700"
-                      >
-                        <Plus className="h-3 w-3 mr-1" /> Add
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Teacher</DialogTitle>
-                      </DialogHeader>
-                      <form
-                        onSubmit={handleAddTeacher}
-                        className="space-y-4 pt-4"
-                      >
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Full Name
-                          </label>
-                          <Input
-                            placeholder="e.g. Dr. Sarah Connor"
-                            value={newTeacher.name}
-                            onChange={(e) =>
-                              setNewTeacher({
-                                ...newTeacher,
-                                name: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Email Address
-                          </label>
-                          <Input
-                            type="email"
-                            placeholder="sarah@school.edu"
-                            value={newTeacher.email}
-                            onChange={(e) =>
-                              setNewTeacher({
-                                ...newTeacher,
-                                email: e.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Subject Specialty
-                          </label>
-                          <Select
-                            onValueChange={(val) => setNewTeacher({ ...newTeacher, subject: val })}
-                            value={newTeacher.subject}
-                            required
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Subject" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subjects.length > 0 ? (
-                                subjects.map((sub: any) => (
-                                  // Using subject_name as the value, but displaying both name and grade_category
-                                  <SelectItem key={sub.id} value={sub.subject_name}>
-                                    {sub.subject_name} (Grades {sub.grade_category})
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="none" disabled>
-                                  No subjects found in DB
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button type="submit" className="w-full bg-indigo-600">
-                          Register Teacher
+                    <Dialog open={isAddTeacherOpen} onOpenChange={setIsAddTeacherOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          className="flex-1 text-xs bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add
                         </Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Teacher</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleAddTeacher} className="space-y-4 pt-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Full Name</label>
+                            <Input
+                              placeholder="e.g. Dr. Sarah Connor"
+                              value={newTeacher.name}
+                              onChange={(e) =>
+                                setNewTeacher({ ...newTeacher, name: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Email Address</label>
+                            <Input
+                              type="email"
+                              placeholder="sarah@school.edu"
+                              value={newTeacher.email}
+                              onChange={(e) =>
+                                setNewTeacher({ ...newTeacher, email: e.target.value })
+                              }
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Initial Password</label>
+                            <Input
+                              type="password"
+                              placeholder="Optional (defaults to teacher123)"
+                              value={newTeacher.password}
+                              onChange={(e) =>
+                                setNewTeacher({ ...newTeacher, password: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Subject Specialty</label>
+                            <Select
+                              onValueChange={(val) => setNewTeacher({ ...newTeacher, subject: val })}
+                              value={newTeacher.subject}
+                              required
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Subject" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subjects.length > 0 ? (
+                                  subjects.map((sub: any) => (
+                                    <SelectItem key={sub.id} value={sub.subject_name}>
+                                      {sub.subject_name} (Grades {sub.grade_category})
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>
+                                    No subjects found in DB
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700">
+                            Register Teacher
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
                 </div>
               </CardContent>
             </Card>

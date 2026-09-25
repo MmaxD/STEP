@@ -45,4 +45,8 @@ Moving from reactive "End-of-Term" reports to live data.
 * * Teacher Account   * Email   - teacher@school.edu
                       * PS      - teacher123
 
+## Developer Documentation
+
+See the [Developer Guide](docs/DeveloperGuide.md) for the system architecture, setup instructions, development workflow, testing guidance, and implementation constraints.
+
 

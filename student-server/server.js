@@ -1155,24 +1155,86 @@ app.post("/classes", (req, res) => {
   });
 });
 // POST: Add a New Teacher
-app.post("/teachers", (req, res) => {
-  const { name, email, subject } = req.body;
+app.post("/teachers", async (req, res) => {
+  const { name, email, subject, password } = req.body;
 
-  // Validate input
-  if (!name || !email) {
-    return res.status(400).json({ message: "Name and Email are required" });
+  if (!name || !email || !subject) {
+    return res.status(400).json({ message: "Name, email, and subject specialty are required." });
   }
 
-  const sql =
-    "INSERT INTO teachers (name, email, subject_specialty, status) VALUES (?, ?, ?, 'Active')";
+  // Use the provided password, or default to "teacher123"
+  const plainPassword = password || "teacher123";
 
-  db.query(sql, [name, email, subject], (err, result) => {
-    if (err) {
-      console.error("Error adding teacher:", err);
-      return res.status(500).json(err);
-    }
-    res.json({ message: "Teacher added successfully", id: result.insertId });
-  });
+  try {
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    db.getConnection((err, connection) => {
+      if (err) {
+        console.error("Connection pool error:", err);
+        return res.status(500).json({ error: "Database connection failed" });
+      }
+
+      connection.beginTransaction((transErr) => {
+        if (transErr) {
+          connection.release();
+          return res.status(500).json({ error: "Failed to begin transaction" });
+        }
+
+        // 1. Insert into users table
+        const userSql = `
+          INSERT INTO users (name, email, password, role)
+          VALUES (?, ?, ?, 'teacher')
+        `;
+
+        connection.query(userSql, [name, email, hashedPassword], (userErr, userResult) => {
+          if (userErr) {
+            return connection.rollback(() => {
+              connection.release();
+              if (userErr.code === "ER_DUP_ENTRY") {
+                return res.status(409).json({ message: "An account with this email already exists." });
+              }
+              return res.status(500).json({ error: "Failed to create user account", details: userErr });
+            });
+          }
+
+          // 2. Insert into teachers table
+          const teacherSql = `
+            INSERT INTO teachers (name, email, subject_specialty, status)
+            VALUES (?, ?, ?, 'Active')
+          `;
+
+          connection.query(teacherSql, [name, email, subject], (teacherErr, teacherResult) => {
+            if (teacherErr) {
+              return connection.rollback(() => {
+                connection.release();
+                return res.status(500).json({ error: "Failed to create teacher profile", details: teacherErr });
+              });
+            }
+
+            // 3. Commit transaction
+            connection.commit((commitErr) => {
+              if (commitErr) {
+                return connection.rollback(() => {
+                  connection.release();
+                  return res.status(500).json({ error: "Transaction commit failed" });
+                });
+              }
+
+              connection.release();
+              return res.status(201).json({
+                message: "Teacher account and profile created successfully",
+                userId: userResult.insertId,
+                teacherId: teacherResult.insertId,
+              });
+            });
+          });
+        });
+      });
+    });
+  } catch (hashError) {
+    console.error("Password hash error:", hashError);
+    return res.status(500).json({ error: "Failed to hash password" });
+  }
 });
 // DELETE: Remove a Teacher
 app.delete("/teachers/:id", (req, res) => {
