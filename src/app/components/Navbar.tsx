@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../../apiConfig";
 import {
   GraduationCap,
-  Bell,
   Shield,
   LogOut,
   LayoutDashboard,
@@ -11,6 +10,11 @@ import {
   ClipboardList,
   BarChart2,
 } from "lucide-react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/app/components/ui/avatar";
 
 interface NavbarProps {
   currentView: string | null;
@@ -24,6 +28,29 @@ export function Navbar({ currentView, setView, onLogout }: NavbarProps) {
 
   // Track if the teacher has an assigned homeroom
   const [hasHomeroom, setHasHomeroom] = useState(false);
+
+  // NEW: Profile Dropdown States
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Dynamically grab the logged-in user's info from localStorage
+  const userName = localStorage.getItem("userName") || "User";
+  const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+  const userEmail = userObj.email || "No email available";
+
+  // Close dropdown if user clicks anywhere outside of it
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Check the database for homeroom assignment on load
   useEffect(() => {
@@ -58,12 +85,11 @@ export function Navbar({ currentView, setView, onLogout }: NavbarProps) {
             id: "announcements",
             name: "Announcements",
             path: "/announcements",
-            icon: <Bell className="w-4 h-4 mr-2" />,
+            icon: <Shield className="w-4 h-4 mr-2" />, // Replaced Bell with Shield
           },
         ];
       case "teacherDash":
         const teacherItems = [];
-        // Only push the Homeroom tab if they are assigned to a class in the DB
         if (hasHomeroom) {
           teacherItems.push({
             id: "homeroom",
@@ -164,6 +190,7 @@ export function Navbar({ currentView, setView, onLogout }: NavbarProps) {
             </div>
           </div>
 
+          {/* Right Side Icons */}
           <div className="flex items-center gap-4">
             <button
               onClick={onLogout}
@@ -172,9 +199,35 @@ export function Navbar({ currentView, setView, onLogout }: NavbarProps) {
               <LogOut className="h-4 w-4" />
               <span className="hidden lg:inline font-medium">Logout</span>
             </button>
-            <Bell className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" />
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold cursor-pointer text-xs">
-              {currentView ? currentView.substring(0, 2).toUpperCase() : "US"}
+
+            {/* NEW: Profile Section with Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold cursor-pointer text-sm hover:bg-blue-200 transition-colors shadow-sm focus:outline-none"
+              >
+                {userName ? userName.substring(0, 2).toUpperCase() : "US"}
+              </button>
+
+              {/* Profile Dropdown Card */}
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-3 w-64 bg-[#2b3137] rounded-xl shadow-2xl p-6 z-50 text-white flex flex-col items-center animate-in fade-in slide-in-from-top-2">
+                  <Avatar className="h-20 w-20 mb-3 border-2 border-gray-500 shadow-inner">
+                    <AvatarImage
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`}
+                    />
+                    <AvatarFallback className="bg-gray-700 text-xl">
+                      {userName ? userName.substring(0, 2).toUpperCase() : "US"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h3 className="text-lg font-medium m-0 tracking-wide text-center">
+                    {userName}
+                  </h3>
+                  <p className="text-sm text-gray-400 m-0 mt-1 text-center truncate w-full">
+                    {userEmail}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
