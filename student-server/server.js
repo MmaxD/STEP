@@ -1,7 +1,7 @@
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
-const bcrypt = require("bcrypt"); // <-- MAKE SURE THIS LINE IS AT THE VERY TOP
+const bcrypt = require('bcryptjs'); // <-- MAKE SURE THIS LINE IS AT THE VERY TOP
 const nodemailer = require("nodemailer");
 
 const app = express();
