@@ -661,13 +661,21 @@ app.get("/classes/with-students", (req, res) => {
             t.name AS teacher_name,
             s.id AS student_id, 
             s.name AS student_name, 
-            m.score AS student_grade, 
-            g.gpa AS student_gpa
+            (
+              SELECT AVG(m.score)
+              FROM student_subjects m
+              WHERE m.student_id = s.id
+            ) AS student_grade,
+            (
+              SELECT g.gpa
+              FROM student_gpa_history g
+              WHERE g.student_id = s.id
+              ORDER BY g.id DESC
+              LIMIT 1
+            ) AS student_gpa
         FROM classes c 
         LEFT JOIN teachers t ON c.homeroom_teacher_id = t.id
         LEFT JOIN students s ON c.class_name = s.enrolled_class
-        LEFT JOIN student_gpa_history g ON s.id = g.student_id
-        LEFT JOIN student_subjects m ON s.id = m.student_id
         ORDER BY c.class_name
     `;
 
