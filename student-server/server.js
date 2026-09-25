@@ -1,21 +1,39 @@
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
-const bcrypt = require('bcryptjs'); // <-- MAKE SURE THIS LINE IS AT THE VERY TOP
+const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 
 const app = express();
-app.use(
-  cors({
-    origin: [
-      "https://step-lms.netlify.app", // Remove the trailing slash here just to be safe
-      "http://localhost:3000",
-      "http://localhost:5173",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  }),
-);
+
+// Define allowed origins
+const allowedOrigins = [
+  "https://step-lms.netlify.app",
+  "http://localhost:3000",
+  "http://localhost:5173",
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+// Apply CORS once
+app.use(cors(corsOptions));
+
+// Handle preflight requests for all routes
+app.options("*", cors(corsOptions));
+
+// Body parser
 app.use(express.json()); // Allows sending JSON data
 
 // 1. Database Connection
