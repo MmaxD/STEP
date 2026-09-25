@@ -976,39 +976,53 @@ app.get("/teachers/available-for-homeroom", (req, res) => {
   });
 });
 // POST: Login Handler
+// POST: Login Handler with Debug Logs
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  // Notice the LEFT JOIN! We connect the tables using their shared email address.
+  
+  console.log(`Login attempt received for email: "${email}"`);
+
   const sql = `
-    SELECT u.role, u.name, u.id as user_id, t.id as teacher_id 
+    SELECT u.password as hashed_password, u.role, u.name, u.id as user_id, t.id as teacher_id 
     FROM users u 
     LEFT JOIN teachers t ON u.email = t.email 
-    WHERE u.email = ? AND u.password = ?
+    WHERE u.email = ?
   `;
 
-  db.query(sql, [email, password], (err, data) => {
+  db.query(sql, [email.trim()], async (err, data) => {
     if (err) {
-      console.error("Login Error:", err);
+      console.error("Login SQL Error:", err);
       return res.status(500).json({ message: "Server Error" });
     }
 
-    if (data.length > 0) {
-      const user = data[0];
+    if (data.length === 0) {
+      console.log(`Login Failed: No user found with email "${email}"`);
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
-      // The magic: If the logged-in user is a teacher, send back their 'teacher_id' (1).
-      // If they are an admin or principal, send back their normal 'user_id' (1 or 5).
-      const correctId =
-        user.role === "teacher" ? user.teacher_id : user.user_id;
+    const user = data[0];
+    console.log(`User found in DB. Role: ${user.role}. Comparing password...`);
+    console.log(`Stored Hash: ${user.hashed_password}`);
 
-      // Return success and the user's role so frontend knows where to redirect
+    try {
+      const passwordMatches = await bcrypt.compare(password, user.hashed_password);
+      console.log(`Bcrypt match result: ${passwordMatches}`);
+
+      if (!passwordMatches) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      const correctId = user.role === "teacher" ? user.teacher_id : user.user_id;
+
       return res.json({
         status: "Success",
         role: user.role,
         id: correctId,
         name: user.name,
       });
-    } else {
-      return res.status(401).json({ message: "Invalid email or password" });
+    } catch (bcryptErr) {
+      console.error("Bcrypt compare error (Invalid hash format?):", bcryptErr);
+      return res.status(500).json({ message: "Internal Server Error during authentication" });
     }
   });
 });
