@@ -11,7 +11,8 @@ import {
   Search,
   Save,
   AlertTriangle,
-} from "lucide-react"; // 👉 Added AlertTriangle
+  TrendingUp, // Added TrendingUp for the stats card
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,7 +22,7 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { Badge } from "@/app/components/ui/badge";
 import { API_BASE } from "@/config";
-import { API_BASE_URL } from "../../apiConfig"; // ADD THIS for the Node database
+import { API_BASE_URL } from "../../apiConfig";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +43,7 @@ interface Class {
   id: string;
   subject: string;
   teacher: string;
-  teacher_id?: number | null; // <--- ADD THIS LINE
+  teacher_id?: number | null;
   room: string;
   grade: string;
   section: string;
@@ -217,17 +218,20 @@ const TimetableSlot = ({ day, time, classInfo, onDrop, onRemove }: any) => {
 // ---------------- MAIN COMPONENT ----------------
 
 export function TimetableBuilder() {
-  // 1. DYNAMIC STATES
   const [availableSections, setAvailableSections] = useState<string[]>([]);
   const [facultyList, setFacultyList] = useState<any[]>([]);
   const [selectedSection, setSelectedSection] = useState<string>("");
   const [availableClasses, setAvailableClasses] = useState<Class[]>([]);
 
+  // NEW: State to hold the dynamic stats per class section
+  const [classStatsMap, setClassStatsMap] = useState<
+    Record<string, { total: number; avg: string }>
+  >({});
+
   const [subjectSearchQuery, setSubjectSearchQuery] = useState<string>("");
   const [sectionSearchQuery, setSectionSearchQuery] = useState<string>("");
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
-  // 2. "ADD NEW CARD" STATES
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [newSubject, setNewSubject] = useState({
     subject_name: "",
@@ -238,7 +242,6 @@ export function TimetableBuilder() {
     color: "#3b82f6",
   });
 
-  // 3. TIMETABLE INITIALIZATION
   const [timetable, setTimetable] = useState<
     Record<string, Record<string, Record<string, Class | null>>>
   >(() => {
@@ -265,7 +268,6 @@ export function TimetableBuilder() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // 4. FETCH LOGIC
   const getGradeCategory = (sectionName: string) => {
     if (
       sectionName.includes("6") ||
@@ -279,11 +281,9 @@ export function TimetableBuilder() {
     return "12";
   };
 
-  // FETCH SECTIONS & FACULTY FROM DATABASE ON LOAD
-useEffect(() => {
+  useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        // 1. Fetch Sections
         const resSections = await fetch(
           `${API_BASE_URL}/classes/with-students`,
         );
@@ -292,6 +292,38 @@ useEffect(() => {
         let uniqueSections: string[] = [];
 
         if (Array.isArray(dataSections)) {
+          // Calculate stats for all sections
+          const statsObj: Record<string, { total: number; avg: string }> = {};
+
+          dataSections.forEach((c: any) => {
+            const cleanName = (c.class_name || "").replace("Grade ", "").trim();
+            const uniqueStudents = new Map();
+            let totalScore = 0;
+            let scoreCount = 0;
+
+            if (c.students) {
+              c.students.forEach((s: any) => {
+                uniqueStudents.set(s.id, s);
+                if (
+                  s.grade !== null &&
+                  s.grade !== undefined &&
+                  s.grade !== ""
+                ) {
+                  totalScore += Number(s.grade);
+                  scoreCount++;
+                }
+              });
+            }
+
+            statsObj[cleanName] = {
+              total: uniqueStudents.size,
+              avg:
+                scoreCount > 0 ? (totalScore / scoreCount).toFixed(1) : "N/A",
+            };
+          });
+
+          setClassStatsMap(statsObj);
+
           let sections = dataSections.map((c: any) =>
             (c.class_name || "").replace("Grade ", "").trim(),
           );
@@ -304,16 +336,12 @@ useEffect(() => {
           uniqueSections = Array.from(new Set(sections)).sort();
           setAvailableSections(uniqueSections);
 
-          if (uniqueSections.length > 0) {
-            setSelectedSection(uniqueSections[0]);
-          }
+          if (uniqueSections.length > 0) setSelectedSection(uniqueSections[0]);
 
-          // 2. Initialize an empty timetable skeleton for all discovered sections
           const emptyTimetable: Record<
             string,
             Record<string, Record<string, Class | null>>
           > = {};
-
           uniqueSections.forEach((sec) => {
             emptyTimetable[sec] = {};
             days.forEach((day) => {
@@ -324,26 +352,19 @@ useEffect(() => {
             });
           });
 
-          // 3. Attempt to fetch previously saved timetable from DB (falls back to blank skeleton)
           try {
             const resSchedule = await fetch(`${API_BASE_URL}/schedules`);
             if (resSchedule.ok) {
               const scheduleData = await resSchedule.json();
-              if (scheduleData && scheduleData.timetable) {
-                // Merge saved schedule onto the empty skeleton
+              if (scheduleData && scheduleData.timetable)
                 setTimetable({ ...emptyTimetable, ...scheduleData.timetable });
-              } else {
-                setTimetable(emptyTimetable);
-              }
-            } else {
-              setTimetable(emptyTimetable);
-            }
+              else setTimetable(emptyTimetable);
+            } else setTimetable(emptyTimetable);
           } catch {
             setTimetable(emptyTimetable);
           }
         }
 
-        // 4. Fetch Faculty List
         const resFaculty = await fetch(`${API_BASE_URL}/faculty`);
         if (resFaculty.ok) {
           const dataFaculty = await resFaculty.json();
@@ -360,19 +381,16 @@ useEffect(() => {
   const fetchSubjects = async () => {
     const category = getGradeCategory(selectedSection);
     try {
-      // CHANGE API_BASE to API_BASE_URL here
       const res = await fetch(
         `${API_BASE_URL}/curriculum-subjects?category=${category}`,
       );
       const data = await res.json();
-
-      // Safety check to prevent white screens!
       if (Array.isArray(data)) {
         const formattedClasses: Class[] = data.map((course: any) => ({
           id: `${course.subject_name.toLowerCase().replace(/\s+/g, "-")}-${selectedSection.toLowerCase()}`,
           subject: course.subject_name,
           teacher: course.teacher_name,
-          teacher_id: course.teacher_id || null, // <--- ADD THIS LINE
+          teacher_id: course.teacher_id || null,
           room: course.room_number,
           section: selectedSection,
           grade: category,
@@ -380,25 +398,19 @@ useEffect(() => {
           periodsPerWeek: course.periods_per_week,
         }));
         setAvailableClasses(formattedClasses);
-      } else {
-        setAvailableClasses([]); // Fallback if DB is empty
-      }
+      } else setAvailableClasses([]);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Re-fetch whenever the Principal switches the class tab (e.g., from 11-A to 9-C)
   useEffect(() => {
-    if (selectedSection) {
-      fetchSubjects();
-    }
+    if (selectedSection) fetchSubjects();
   }, [selectedSection]);
 
   const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // CHANGE API_BASE to API_BASE_URL here
       await fetch(`${API_BASE_URL}/curriculum-subjects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -438,9 +450,8 @@ useEffect(() => {
     setTimetable((prev) => {
       const next = JSON.parse(JSON.stringify(prev));
       const section = item.section;
-      if (item.sourceDay && item.sourceTime) {
+      if (item.sourceDay && item.sourceTime)
         next[section][item.sourceDay][item.sourceTime] = null;
-      }
       const classData = { ...item };
       delete classData.sourceDay;
       delete classData.sourceTime;
@@ -457,18 +468,13 @@ useEffect(() => {
     });
   };
 
-const executeAutoGenerate = async () => {
+  const executeAutoGenerate = async () => {
     setShowConfirmModal(false);
-
-    if (availableSections.length === 0) {
-      showNotification("No class sections found to schedule.", "error");
-      return;
-    }
+    if (availableSections.length === 0)
+      return showNotification("No class sections found.", "error");
 
     try {
       showNotification("Building constraints for all classes...", "success");
-
-      // 1. Fetch curriculum subjects for all grade categories present in the school
       const categories = ["6-9", "10-11", "12"];
       const categorySubjectMap: Record<string, any[]> = {};
 
@@ -476,29 +482,26 @@ const executeAutoGenerate = async () => {
         categories.map(async (cat) => {
           try {
             const res = await fetch(
-              `${API_BASE_URL}/curriculum-subjects?category=${cat}`
+              `${API_BASE_URL}/curriculum-subjects?category=${cat}`,
             );
             const data = await res.json();
             categorySubjectMap[cat] = Array.isArray(data) ? data : [];
           } catch (e) {
             categorySubjectMap[cat] = [];
           }
-        })
+        }),
       );
 
-      // 2. Build full school roster: map each section to its respective subjects
       const schoolWideClasses: any[] = [];
-
       availableSections.forEach((sec) => {
         const cat = getGradeCategory(sec);
         const subjectsForCategory = categorySubjectMap[cat] || [];
-
         subjectsForCategory.forEach((course) => {
           schoolWideClasses.push({
             id: `${course.subject_name.toLowerCase().replace(/\s+/g, "-")}-${sec.toLowerCase()}`,
             subject: String(course.subject_name || "Subject"),
             teacher: String(course.teacher_name || "Unassigned"),
-            teacher_id: course.teacher_id || null, // <--- ADD THIS LINE
+            teacher_id: course.teacher_id || null,
             room: String(course.room_number || `Room-${sec}`),
             section: sec,
             color: String(course.color || "#3b82f6"),
@@ -507,13 +510,8 @@ const executeAutoGenerate = async () => {
         });
       });
 
-      if (schoolWideClasses.length === 0) {
-        showNotification(
-          "No curriculum subjects found in database to schedule.",
-          "error"
-        );
-        return;
-      }
+      if (schoolWideClasses.length === 0)
+        return showNotification("No curriculum subjects found.", "error");
 
       const payload = {
         classes: schoolWideClasses,
@@ -521,8 +519,6 @@ const executeAutoGenerate = async () => {
         days: days,
         timeSlots: timeSlots.map((slot) => slot.time),
       };
-
-      // 3. Post to the Python OR-Tools solver
       const response = await fetch(`${API_BASE}/generate-schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -530,39 +526,32 @@ const executeAutoGenerate = async () => {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        console.error("422 Validation Detail:", data.detail);
-        showNotification(
+      if (!response.ok)
+        return showNotification(
           `Validation error: ${JSON.stringify(data.detail)}`,
-          "error"
+          "error",
         );
-        return;
-      }
 
       if (data.status === "success") {
-        // Merge or replace timetable state for all sections returned
         setTimetable(data.timetable);
         showNotification(
           `Master timetable generated for ${Object.keys(data.timetable).length} sections!`,
-          "success"
+          "success",
         );
       } else {
         showNotification(`Solver failed: ${data.message}`, "error");
       }
     } catch (error) {
-      console.error("Auto-generate failed:", error);
+      console.error(error);
       showNotification("Failed to connect to backend server.", "error");
     }
   };
 
-const handleSaveSchedule = async () => {
+  const handleSaveSchedule = async () => {
     try {
       showNotification("Saving schedule to database...", "success");
-
-      // 1. Flatten the nested timetable into database rows
       const flattenedSchedule: any[] = [];
-      
+
       Object.entries(timetable).forEach(([section, daysObj]) => {
         Object.entries(daysObj).forEach(([day, slotsObj]) => {
           Object.entries(slotsObj).forEach(([time, classInfo]) => {
@@ -573,45 +562,46 @@ const handleSaveSchedule = async () => {
                 time_slot: time,
                 class_id: classInfo.id,
                 subject: classInfo.subject,
-                teacher_id: classInfo.teacher_id || null, // <--- This must say classInfo.teacher_id
-                room: classInfo.room
+                teacher_id: classInfo.teacher_id || null,
+                room: classInfo.room,
               });
             }
           });
         });
       });
 
-      if (flattenedSchedule.length === 0) {
-        showNotification("Timetable is empty. Nothing to save.", "error");
-        return;
-      }
+      if (flattenedSchedule.length === 0)
+        return showNotification(
+          "Timetable is empty. Nothing to save.",
+          "error",
+        );
 
-      // 2. Send the flattened array to your Node.js API
       const res = await fetch(`${API_BASE_URL}/schedules`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           schedules: flattenedSchedule,
-          // Optional: Send the raw nested JSON if you want to store it in a NoSQL/JSON column
-          raw_timetable: timetable 
+          raw_timetable: timetable,
         }),
       });
 
-      if (res.ok) {
+      if (res.ok)
         showNotification("Schedule successfully saved to database!", "success");
-      } else {
+      else {
         const errorData = await res.json();
-        showNotification(`Failed to save: ${errorData.message || "Database error"}`, "error");
+        showNotification(
+          `Failed to save: ${errorData.message || "Database error"}`,
+          "error",
+        );
       }
     } catch (e) {
-      console.error("Save error:", e);
+      console.error(e);
       showNotification("Error saving schedule to server.", "error");
     }
   };
 
-  // 5. UPDATE MEMOS TO USE DYNAMIC STATE
   const visibleClasses = useMemo(() => {
-    let filtered = availableClasses; // <-- Changed to use state
+    let filtered = availableClasses;
     if (subjectSearchQuery.trim() !== "") {
       const query = subjectSearchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -622,18 +612,22 @@ const handleSaveSchedule = async () => {
       );
     }
     return filtered;
-  }, [availableClasses, subjectSearchQuery]); // <-- Updated dependency
+  }, [availableClasses, subjectSearchQuery]);
 
   const visibleSections = useMemo(() => {
-    if (sectionSearchQuery.trim() === "") return availableSections; // <-- Changed to use state
+    if (sectionSearchQuery.trim() === "") return availableSections;
     return availableSections.filter((sec) =>
       sec.toLowerCase().includes(sectionSearchQuery.toLowerCase()),
     );
-  }, [sectionSearchQuery, availableSections]); // <-- Updated dependency
+  }, [sectionSearchQuery, availableSections]);
+
+  const currentStats = classStatsMap[selectedSection] || {
+    total: 0,
+    avg: "N/A",
+  };
 
   return (
     <>
-      {/* 👉 NEW: Custom Confirmation Modal Overlay */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 mx-4 animate-in fade-in zoom-in-95 duration-200">
@@ -660,7 +654,6 @@ const handleSaveSchedule = async () => {
               >
                 Cancel
               </Button>
-              {/* This triggers the actual solver logic */}
               <Button
                 className="bg-amber-600 hover:bg-amber-700 text-white"
                 onClick={executeAutoGenerate}
@@ -689,7 +682,6 @@ const handleSaveSchedule = async () => {
               </div>
             </div>
             <div className="flex gap-2">
-              {/* 👉 UPDATED: Clicking this now opens the modal instead of running the solver */}
               <Button
                 size="sm"
                 variant="outline"
@@ -725,7 +717,6 @@ const handleSaveSchedule = async () => {
             </div>
           )}
 
-          {/* Section Selector Tabs */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-gray-200 pb-4">
             <div className="flex flex-wrap gap-2 flex-1">
               {visibleSections.length > 0 ? (
@@ -751,8 +742,6 @@ const handleSaveSchedule = async () => {
                 </span>
               )}
             </div>
-
-            {/* Section Search Input */}
             <div className="relative">
               <Search className="absolute left-2.5 top-2 h-4 w-4 text-gray-400" />
               <input
@@ -765,12 +754,10 @@ const handleSaveSchedule = async () => {
             </div>
           </div>
 
-          {/* Available Classes Pool */}
           <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-4">
               <div className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-4">
                 {selectedSection} Classes - Drag to Schedule
-                {/* THE NEW "ADD CARD" BUTTON AND MODAL */}
                 <Dialog
                   open={isAddSubjectOpen}
                   onOpenChange={setIsAddSubjectOpen}
@@ -808,7 +795,6 @@ const handleSaveSchedule = async () => {
                           required
                         />
                       </div>
-
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">
@@ -854,9 +840,7 @@ const handleSaveSchedule = async () => {
                           </Select>
                         </div>
                       </div>
-
                       <div className="grid grid-cols-2 gap-4">
-                        {/* --- NEW FACULTY DROPDOWN --- */}
                         <div className="space-y-2">
                           <label className="text-sm font-medium">
                             Teacher Name
@@ -891,7 +875,6 @@ const handleSaveSchedule = async () => {
                             </SelectContent>
                           </Select>
                         </div>
-
                         <div className="space-y-2">
                           <label className="text-sm font-medium">
                             Default Room
@@ -908,7 +891,6 @@ const handleSaveSchedule = async () => {
                           />
                         </div>
                       </div>
-
                       <Button type="submit" className="w-full bg-blue-600">
                         Create Subject Card
                       </Button>
@@ -916,8 +898,6 @@ const handleSaveSchedule = async () => {
                   </DialogContent>
                 </Dialog>
               </div>
-
-              {/* Subject Search Input */}
               <div className="relative">
                 <Search className="absolute left-2.5 top-2 h-4 w-4 text-gray-400" />
                 <input
@@ -954,7 +934,6 @@ const handleSaveSchedule = async () => {
             </div>
           </div>
 
-          {/* Timetable Grid */}
           <div className="overflow-x-auto">
             <div className="min-w-[1000px]">
               <div className="grid grid-cols-[120px_repeat(5,1fr)] gap-px bg-gray-200 border border-gray-200">
@@ -970,7 +949,6 @@ const handleSaveSchedule = async () => {
                   </div>
                 ))}
               </div>
-
               <div className="grid grid-cols-[120px_repeat(5,1fr)] gap-px bg-gray-200 border-l border-r border-b border-gray-200">
                 {timeSlots.map((slot) => (
                   <div key={`row-${slot.time}`} className="contents">
@@ -999,6 +977,37 @@ const handleSaveSchedule = async () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* DYNAMIC CLASS STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 mb-8">
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-xs text-gray-600">Total Students</div>
+              <div className="text-xl font-bold text-gray-900">
+                {currentStats.total}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+              <TrendingUp className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-xs text-gray-600">Avg Performance</div>
+              <div className="text-xl font-bold text-gray-900">
+                {currentStats.avg}
+                {currentStats.avg !== "N/A" ? "%" : ""}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

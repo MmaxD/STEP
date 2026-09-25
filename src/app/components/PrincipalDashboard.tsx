@@ -1027,33 +1027,6 @@ const handleAutoAssign = () => {
             <TimetableBuilder />
 
             <PendingLeaves />
-
-            <div className="grid grid-cols-4 gap-4 pb-10">
-              <Card className="border border-gray-200 shadow-sm">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600">Total Students</div>
-                    <div className="text-xl font-bold text-gray-900">
-                      {quickStats.enrolledStudents}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border border-gray-200 shadow-sm">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
-                    <TrendingUp className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-600">Avg Performance</div>
-                    <div className="text-xl font-bold text-gray-900">87.3%</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
 
