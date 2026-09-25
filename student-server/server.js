@@ -977,14 +977,10 @@ app.get("/teachers/available-for-homeroom", (req, res) => {
 });
 // POST: Login Handler
 // POST: Login Handler with Debug Logs
-app.post("/login", async (req, res) => {
+app.post("/login", (req, res) => {
   const { email, password } = req.body;
   
-  // Inspect incoming values
-  console.log(`Login attempt received for email: "${email}"`);
-  console.log(`Received password value: "${password}"`);
-  console.log(`Received password type: ${typeof password}, length: ${password ? password.length : 0}`);
-
+  // Notice: We removed "AND u.password = ?" because we must check the hash manually using bcrypt
   const sql = `
     SELECT u.password as hashed_password, u.role, u.name, u.id as user_id, t.id as teacher_id 
     FROM users u 
@@ -992,51 +988,40 @@ app.post("/login", async (req, res) => {
     WHERE u.email = ?
   `;
 
-  db.query(sql, [email.trim()], async (err, data) => {
+  db.query(sql, [email], async (err, data) => {
     if (err) {
-      console.error("Login SQL Error:", err);
+      console.error("Login Error:", err);
       return res.status(500).json({ message: "Server Error" });
     }
 
-    if (data.length === 0) {
-      console.log(`Login Failed: No user found with email "${email}"`);
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
+    if (data.length > 0) {
+      const user = data[0];
 
-    const user = data[0];
-    const storedHash = user.hashed_password ? user.hashed_password.trim() : "";
-    const cleanPassword = typeof password === "string" ? password.trim() : "";
-
-    console.log(`Stored Hash from DB: "${storedHash}" (length: ${storedHash.length})`);
-
-    try {
-      // Test 1: Compare the incoming password against the stored DB hash
-      const passwordMatches = await bcrypt.compare(cleanPassword, storedHash);
-      console.log(`Bcrypt match result with DB hash: ${passwordMatches}`);
-
-      // Test 2: Sanity test against a fresh hash generated right now
-      const directTestHash = await bcrypt.hash("admin123", 10);
-      const selfTest = await bcrypt.compare(cleanPassword, directTestHash);
-      console.log(`Sanity test (compare received password with fresh hash of "admin123"): ${selfTest}`);
+      // 3. Compare the typed plain-text password to the hashed database password
+      const passwordMatches = await bcrypt.compare(password, user.hashed_password);
 
       if (!passwordMatches) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      const correctId = user.role === "teacher" ? user.teacher_id : user.user_id;
+      // The magic: If the logged-in user is a teacher, send back their 'teacher_id' (1).
+      // If they are an admin or principal, send back their normal 'user_id' (1 or 5).
+      const correctId =
+        user.role === "teacher" ? user.teacher_id : user.user_id;
 
+      // Return success and the user's role so frontend knows where to redirect
       return res.json({
         status: "Success",
         role: user.role,
         id: correctId,
         name: user.name,
       });
-    } catch (bcryptErr) {
-      console.error("Bcrypt compare error:", bcryptErr);
-      return res.status(500).json({ message: "Internal Server Error" });
+    } else {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
   });
 });
+
 // --- USER ACCOUNT MANAGEMENT ---
 
 // GET: Fetch all users (for the Accounts Page)
@@ -1049,62 +1034,71 @@ app.get("/users", (req, res) => {
 });
 
 // POST: Add a new user account (with auto-profile creation)
-app.post("/users", (req, res) => {
+app.post("/users", async (req, res) => { // <-- Notice we made this async
   const { name, email, password, role, enrolledClass } = req.body;
 
   if (!email || !password || !role) {
     return res.status(400).json({ message: "Email, Password, and Role are required." });
   }
 
-  // Get a connection for the transaction
-  db.getConnection((err, connection) => {
-    if (err) return res.status(500).json({ error: "Database connection failed" });
+  try {
+    // 1. Hash the incoming password before doing any database operations
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    connection.beginTransaction((err) => {
-      if (err) {
-        connection.release();
-        return res.status(500).json({ error: "Transaction start failed" });
-      }
+    // Get a connection for the transaction
+    db.getConnection((err, connection) => {
+      if (err) return res.status(500).json({ error: "Database connection failed" });
 
-      // 1. Insert into the main `users` table
-      connection.query("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", [name, email, password, role], (err, userResult) => {
+      connection.beginTransaction((err) => {
         if (err) {
-          return connection.rollback(() => {
-            connection.release();
-            if (err.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "Email already exists." });
-            res.status(500).json(err);
-          });
+          connection.release();
+          return res.status(500).json({ error: "Transaction start failed" });
         }
 
-        // 2. Check role and insert into specific profile table
-        if (role === 'teacher') {
-          connection.query("INSERT INTO teachers (name, email) VALUES (?, ?)", [name, email], (err) => {
-            if (err) return connection.rollback(() => { connection.release(); res.status(500).json(err); });
-            commitTransaction();
-          });
-        } else if (role === 'student') {
-          connection.query("INSERT INTO students (name, email, enrolled_class) VALUES (?, ?, ?)", [name, email, enrolledClass || 'Unassigned'], (err) => {
-            if (err) return connection.rollback(() => { connection.release(); res.status(500).json(err); });
-            commitTransaction();
-          });
-        } else {
-           // Admin or Principal
-           commitTransaction();
-        }
+        // 2. Insert the HASHED password instead of the plain-text one
+        connection.query("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)", [name, email, hashedPassword, role], (err, userResult) => {
+          if (err) {
+            return connection.rollback(() => {
+              connection.release();
+              if (err.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "Email already exists." });
+              res.status(500).json(err);
+            });
+          }
 
-        // 3. Finalize the transaction
-        function commitTransaction() {
-          connection.commit((err) => {
-            if (err) {
-              return connection.rollback(() => { connection.release(); res.status(500).json({ error: "Commit failed" }); });
-            }
-            connection.release();
-            res.json({ message: "User account and profile created successfully", id: userResult.insertId });
-          });
-        }
+          // Check role and insert into specific profile table
+          if (role === 'teacher') {
+            connection.query("INSERT INTO teachers (name, email) VALUES (?, ?)", [name, email], (err) => {
+              if (err) return connection.rollback(() => { connection.release(); res.status(500).json(err); });
+              commitTransaction();
+            });
+          } else if (role === 'student') {
+            connection.query("INSERT INTO students (name, email, enrolled_class) VALUES (?, ?, ?)", [name, email, enrolledClass || 'Unassigned'], (err) => {
+              if (err) return connection.rollback(() => { connection.release(); res.status(500).json(err); });
+              commitTransaction();
+            });
+          } else {
+             // Admin or Principal
+             commitTransaction();
+          }
+
+          // Finalize the transaction
+          function commitTransaction() {
+            connection.commit((err) => {
+              if (err) {
+                return connection.rollback(() => { connection.release(); res.status(500).json({ error: "Commit failed" }); });
+              }
+              connection.release();
+              res.json({ message: "User account and profile created successfully", id: userResult.insertId });
+            });
+          }
+        });
       });
     });
-  });
+  } catch (hashError) {
+    console.error("Hashing Error:", hashError);
+    return res.status(500).json({ error: "Failed to secure password" });
+  }
 });
 
 // DELETE: Remove a user account
