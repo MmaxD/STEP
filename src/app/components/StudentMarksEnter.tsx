@@ -5,6 +5,7 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Avatar, AvatarFallback } from '@/app/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { API_BASE_URL } from "../../apiConfig";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Status = 'submitted' | 'graded' | 'late';
@@ -99,7 +100,7 @@ export function StudentMarkEntry() {
     const fetchData = async () => {
       const teacherId = localStorage.getItem("loggedInUserId") || "1";
       try {
-        const subRes = await fetch("http://localhost:8081/api/subjects");
+        const subRes = await fetch(`${API_BASE_URL}/api/subjects`);
         const subData = await subRes.json();
         
         const fetchedSubjects: string[] = [];
@@ -115,7 +116,7 @@ export function StudentMarkEntry() {
         setSubjectsList(fetchedSubjects);
         setSubjectMap(fetchedMap);
 
-        const stdRes = await fetch(`http://localhost:8081/api/homeroom/${teacherId}/students`);
+        const stdRes = await fetch(`${API_BASE_URL}/api/homeroom/${teacherId}/students`);
         const stdData = await stdRes.json();
 
         const formattedStudents: Record<number, Student> = {};
@@ -205,7 +206,7 @@ export function StudentMarkEntry() {
     }
 
     try {
-      const response = await fetch("http://localhost:8081/api/student-marks", {
+      const response = await fetch(`${API_BASE_URL}/api/student-marks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
