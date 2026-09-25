@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from "../../apiConfig";
 
 interface Substitute {
   id: number;
@@ -40,7 +41,7 @@ export default function ReliefAllocation() {
   useEffect(() => {
     const fetchLeaves = async () => {
       try {
-        const response = await fetch("http://localhost:8081/approved-leaves");
+        const response = await fetch(`${API_BASE_URL}/approved-leaves`);
         const data = await response.json();
         setLeaveRequests(data);
       } catch (error) {
@@ -57,7 +58,7 @@ export default function ReliefAllocation() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch("http://localhost:8081/allocate-relief", {
+      const response = await fetch(`${API_BASE_URL}/allocate-relief`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,7 +116,7 @@ export default function ReliefAllocation() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:8081/confirm-relief", {
+      const response = await fetch(`${API_BASE_URL}/confirm-relief`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
