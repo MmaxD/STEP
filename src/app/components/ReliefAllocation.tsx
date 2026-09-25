@@ -38,6 +38,7 @@ export default function ReliefAllocation() {
   const [selectedAssignments, setSelectedAssignments] = useState<Record<string, { substitute_id: number, section: string }>>({});
 
   // 1. Fetch real approved leaves from the database on page load
+  // commit fails
   useEffect(() => {
     const fetchLeaves = async () => {
       try {
