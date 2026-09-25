@@ -1958,8 +1958,6 @@ app.put("/leave-requests/:id/status", (req, res) => {
     });
 });
 
-const nodemailer = require("nodemailer");
-
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
