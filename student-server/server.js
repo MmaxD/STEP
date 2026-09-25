@@ -977,10 +977,13 @@ app.get("/teachers/available-for-homeroom", (req, res) => {
 });
 // POST: Login Handler
 // POST: Login Handler with Debug Logs
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
   
+  // Inspect incoming values
   console.log(`Login attempt received for email: "${email}"`);
+  console.log(`Received password value: "${password}"`);
+  console.log(`Received password type: ${typeof password}, length: ${password ? password.length : 0}`);
 
   const sql = `
     SELECT u.password as hashed_password, u.role, u.name, u.id as user_id, t.id as teacher_id 
@@ -1001,12 +1004,20 @@ app.post("/login", (req, res) => {
     }
 
     const user = data[0];
-    console.log(`User found in DB. Role: ${user.role}. Comparing password...`);
-    console.log(`Stored Hash: ${user.hashed_password}`);
+    const storedHash = user.hashed_password ? user.hashed_password.trim() : "";
+    const cleanPassword = typeof password === "string" ? password.trim() : "";
+
+    console.log(`Stored Hash from DB: "${storedHash}" (length: ${storedHash.length})`);
 
     try {
-      const passwordMatches = await bcrypt.compare(password, user.hashed_password);
-      console.log(`Bcrypt match result: ${passwordMatches}`);
+      // Test 1: Compare the incoming password against the stored DB hash
+      const passwordMatches = await bcrypt.compare(cleanPassword, storedHash);
+      console.log(`Bcrypt match result with DB hash: ${passwordMatches}`);
+
+      // Test 2: Sanity test against a fresh hash generated right now
+      const directTestHash = await bcrypt.hash("admin123", 10);
+      const selfTest = await bcrypt.compare(cleanPassword, directTestHash);
+      console.log(`Sanity test (compare received password with fresh hash of "admin123"): ${selfTest}`);
 
       if (!passwordMatches) {
         return res.status(401).json({ message: "Invalid email or password" });
@@ -1021,12 +1032,11 @@ app.post("/login", (req, res) => {
         name: user.name,
       });
     } catch (bcryptErr) {
-      console.error("Bcrypt compare error (Invalid hash format?):", bcryptErr);
-      return res.status(500).json({ message: "Internal Server Error during authentication" });
+      console.error("Bcrypt compare error:", bcryptErr);
+      return res.status(500).json({ message: "Internal Server Error" });
     }
   });
 });
-
 // --- USER ACCOUNT MANAGEMENT ---
 
 // GET: Fetch all users (for the Accounts Page)
