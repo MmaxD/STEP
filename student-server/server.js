@@ -217,35 +217,137 @@ app.get("/students", (req, res) => {
 });
 
 // POST: Add a new student
-app.post("/students", (req, res) => {
-  const sql =
-    "INSERT INTO students (`name`, `email`, `enrolled_class`, `status`) VALUES (?)";
-  const values = [
-    req.body.name,
-    req.body.email,
-    req.body.enrolledClass, // Note: Matches React state name
-    req.body.status,
-  ];
-  db.query(sql, [values], (err, data) => {
-    if (err) return res.status(500).json(err);
-    return res.json("Student has been created successfully.");
-  });
+app.post("/students", async (req, res) => {
+  console.log("Incoming student data:", req.body); // Add this line
+
+  const { name, email, password, enrolledClass, status } = req.body;
+  
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required." });
+  }
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required." });
+  }
+
+  try {
+    // HERE IS THE HASHING
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    db.getConnection((err, connection) => {
+      if (err) return res.status(500).json({ error: "Database connection failed" });
+
+      connection.beginTransaction((err) => {
+        if (err) {
+          connection.release();
+          return res.status(500).json({ error: "Transaction start failed" });
+        }
+
+        // 1. Insert into users table (using the HASHED password)
+        const userSql = "INSERT INTO users (`name`, `email`, `password`, `role`) VALUES (?, ?, ?, 'student')";
+        connection.query(userSql, [name, email, hashedPassword], (err, userResult) => {
+          if (err) {
+            return connection.rollback(() => {
+              connection.release();
+              if (err.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "Email already exists in users." });
+              return res.status(500).json(err);
+            });
+          }
+
+          // 2. Insert into students table
+          const studentSql = "INSERT INTO students (`name`, `email`, `enrolled_class`, `status`) VALUES (?, ?, ?, ?)";
+          const studentValues = [name, email, enrolledClass || "Unassigned", status || "Active"];
+
+          connection.query(studentSql, studentValues, (err, studentResult) => {
+            if (err) {
+              return connection.rollback(() => {
+                connection.release();
+                if (err.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "Student record already exists." });
+                return res.status(500).json(err);
+              });
+            }
+
+            // 3. Commit both writes together
+            connection.commit((err) => {
+              if (err) {
+                return connection.rollback(() => {
+                  connection.release();
+                  return res.status(500).json({ error: "Transaction commit failed" });
+                });
+              }
+
+              connection.release();
+              return res.status(201).json({ message: "Student account created successfully." });
+            });
+          });
+        });
+      });
+    });
+  } catch (hashError) {
+    console.error("Hashing error:", hashError);
+    return res.status(500).json({ error: "Failed to secure password" });
+  }
 });
 
 // PUT: Update a student
 app.put("/students/:id", (req, res) => {
   const id = req.params.id;
-  const sql =
-    "UPDATE students SET `name`= ?, `email`= ?, `enrolled_class`= ?, `status`= ? WHERE id = ?";
-  const values = [
-    req.body.name,
-    req.body.email,
-    req.body.enrolledClass,
-    req.body.status,
-  ];
-  db.query(sql, [...values, id], (err, data) => {
-    if (err) return resres.status(500).json(err);
-    return res.json("Student updated successfully.");
+  const { name, email, enrolledClass, status } = req.body;
+
+  if (!name || !email) {
+    return res.status(400).json({ message: "Name and email are required." });
+  }
+
+  db.getConnection((err, connection) => {
+    if (err) return res.status(500).json({ error: "Database connection failed" });
+
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release();
+        return res.status(500).json({ error: "Transaction start failed" });
+      }
+
+      // 1. Fetch the old email
+      connection.query("SELECT email FROM students WHERE id = ?", [id], (err, results) => {
+        if (err || results.length === 0) {
+          return connection.rollback(() => {
+            connection.release();
+            res.status(err ? 500 : 404).json(err || { message: "Student not found." });
+          });
+        }
+
+        const oldEmail = results[0].email;
+
+        // 2. Update students table
+        const studentSql = "UPDATE students SET `name`= ?, `email`= ?, `enrolled_class`= ?, `status`= ? WHERE id = ?";
+        connection.query(studentSql, [name, email, enrolledClass, status, id], (err) => {
+          if (err) {
+            return connection.rollback(() => { connection.release(); res.status(500).json(err); });
+          }
+
+          // 3. Update users table using the old email to find the account
+          const userSql = "UPDATE users SET `name`= ?, `email`= ? WHERE `email` = ? AND `role` = 'student'";
+          connection.query(userSql, [name, email, oldEmail], (err) => {
+            if (err) {
+              return connection.rollback(() => {
+                connection.release();
+                if (err.code === "ER_DUP_ENTRY") return res.status(409).json({ message: "Email already taken." });
+                res.status(500).json(err);
+              });
+            }
+
+            // 4. Commit transaction
+            connection.commit((err) => {
+              if (err) return connection.rollback(() => { connection.release(); res.status(500).json({ error: "Commit failed" }); });
+              
+              connection.release();
+              return res.json({ message: "Student profile updated successfully." });
+            });
+          });
+        });
+      });
+    });
   });
 });
 // DELETE: Remove a student
@@ -418,6 +520,73 @@ app.post("/attendance", (req, res) => {
     res.json({ message: "Attendance updated" });
   });
 });
+
+
+
+const getCurrentSemester = () => {
+    const today = new Date();
+    const month = today.getMonth(); // 0 = January, 11 = December
+    const year = today.getFullYear();
+
+    // Adjust these months based on your school's actual academic calendar
+    if (month >= 7 && month <= 11) { 
+        // August (7) to December (11)
+        return `Fall ${year}`;
+    } else if (month >= 0 && month <= 4) { 
+        // January (0) to May (4)
+        return `Spring ${year}`;
+    } else { 
+        // June (5) to July (6)
+        return `Summer ${year}`;
+    }
+};
+
+const updateStudentGPA = async (studentId, semester) => {
+    try {
+        // 1. Fetch all scores for this student in this semester
+        const [marks] = await db.promise().query(
+            `SELECT score FROM student_subjects WHERE student_id = ? AND semester = ?`,
+            [studentId, semester]
+        );
+
+        // If all scores were deleted, set GPA to 0
+        if (marks.length === 0) {
+            await db.promise().query(
+                `UPDATE student_gpa_history SET gpa = 0.00 WHERE student_id = ? AND semester = ?`,
+                [studentId, semester]
+            );
+            return 0.00;
+        }
+
+        // 2. Calculate grade points based on standard 4.0 scale
+        let totalGradePoints = 0;
+        marks.forEach(mark => {
+            const s = mark.score;
+            if (s >= 85) totalGradePoints += 4.0;
+            else if (s >= 75) totalGradePoints += 3.3; // B+
+            else if (s >= 65) totalGradePoints += 2.7; // B
+            else if (s >= 50) totalGradePoints += 2.0; // C
+            else totalGradePoints += 0.0;              // F
+        });
+
+        const finalGpa = (totalGradePoints / marks.length).toFixed(2);
+
+        // 3. Save or update the final GPA in the database
+        await db.promise().query(
+            `INSERT INTO student_gpa_history (student_id, semester, gpa) 
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE gpa = VALUES(gpa)`,
+            [studentId, semester, finalGpa]
+        );
+
+        return finalGpa;
+    } catch (err) {
+        console.error("Error automatically updating GPA:", err);
+        throw err;
+    }
+};
+
+
 
 // 3. POST: Mark All Present
 app.post("/attendance/mark-all", (req, res) => {
@@ -699,6 +868,60 @@ app.get("/students/:id/performance", (req, res) => {
 
 
 
+// Automatically analyze scores and generate Focus Areas
+// Automatically analyze scores and generate Focus Areas
+const autoGenerateFocusAreas = async (studentId, semester) => {
+    try {
+        // 1. Fetch the student's scores and the actual subject names for this semester
+        const [marks] = await db.promise().query(
+            `SELECT ss.score, cs.subject_name 
+             FROM student_subjects ss
+             JOIN curriculum_subjects cs ON ss.subject_id = cs.id
+             WHERE ss.student_id = ? AND ss.semester = ?`,
+            [studentId, semester]
+        );
+
+        // 2. Clear out the old focus areas so we start fresh with the updated data
+        await db.promise().query(
+            `DELETE FROM student_focus_areas WHERE student_id = ?`,
+            [studentId]
+        );
+
+        // 3. Calculate new focus areas based on the scores
+        const focusAreasToInsert = [];
+        
+        marks.forEach(mark => {
+            if (mark.score < 50) {
+                // Failing score = High Priority
+                focusAreasToInsert.push([
+                    studentId, 
+                    `Urgent review in ${mark.subject_name}`, 
+                    'low',    // Fixed to match your database format
+                    'high'
+                ]);
+            } else if (mark.score >= 50 && mark.score < 75) {
+                // Borderline passing score = Medium Priority
+                focusAreasToInsert.push([
+                    studentId, 
+                    `Practice recommended for ${mark.subject_name}`, 
+                    'medium', // Fixed to match your database format
+                    'medium'
+                ]);
+            }
+        });
+
+        // 4. Insert the new calculated areas into the database
+        if (focusAreasToInsert.length > 0) {
+            await db.promise().query(
+                `INSERT INTO student_focus_areas (student_id, topic, confidence, priority) VALUES ?`,
+                [focusAreasToInsert]
+            );
+        }
+        
+    } catch (err) {
+        console.error("Error automatically generating focus areas:", err);
+    }
+};
 
 
 
@@ -712,6 +935,9 @@ app.post("/api/student-marks", async (req, res) => {
     return res.status(400).json({ message: "Missing required data." });
   }
 
+  // Generate the semester automatically based on today's date
+  const currentSemester = getCurrentSemester(); 
+
   try {
     const verifyQuery = `
       SELECT c.homeroom_teacher_id 
@@ -720,43 +946,49 @@ app.post("/api/student-marks", async (req, res) => {
       WHERE s.id = ?
     `;
 
-    db.query(verifyQuery, [student_id], (err, results) => {
-      if (err) return res.status(500).json({ error: "Database error during verification." });
+    const [results] = await db.promise().query(verifyQuery, [student_id]);
       
-      if (results.length === 0) {
-        return res.status(404).json({ error: "Student or class not found." });
-      }
+    if (results.length === 0) {
+      return res.status(404).json({ error: "Student or class not found." });
+    }
 
-      if (parseInt(teacher_id) !== results[0].homeroom_teacher_id) {
-        return res.status(403).json({ 
-          error: "Unauthorized: Only the homeroom teacher can update marks." 
-        });
-      }
-
-      // Updated standard MySQL syntax for bulk insert/update
-      const insertQuery = `
-        INSERT INTO student_subjects (student_id, subject_id, score) 
-        VALUES ?
-        ON DUPLICATE KEY UPDATE score = VALUES(score)
-      `;
-
-      const values = marks.map(mark => [student_id, mark.subject_id, mark.score]);
-
-      db.query(insertQuery, [values], (insertErr) => {
-        if (insertErr) {
-          console.error("MySQL Insert Error:", insertErr); // Will print exact issue to your backend terminal
-          return res.status(500).json({ error: "Failed to save marks." });
-        }
-        
-        res.status(200).json({ message: "Marks successfully updated." });
+    if (parseInt(teacher_id) !== results[0].homeroom_teacher_id) {
+      return res.status(403).json({ 
+        error: "Unauthorized: Only the homeroom teacher can update marks." 
       });
+    }
+
+    // FIXED: Added 'semester' to the INSERT columns and VALUES
+    // Change 'student_subjects' to your actual table name if different
+    const insertQuery = `
+      INSERT INTO student_subjects (student_id, subject_id, score, semester) 
+      VALUES ?
+      ON DUPLICATE KEY UPDATE score = VALUES(score)
+    `;
+    
+    // FIXED: Pushing currentSemester into the values array
+    const values = marks.map(mark => [student_id, mark.subject_id, mark.score, currentSemester]);
+
+    await db.promise().query(insertQuery, [values]);
+    
+    // Calculate GPA AFTER marks are successfully saved
+    const updatedGpa = await updateStudentGPA(student_id, currentSemester);
+    
+    // --- ADDED THIS LINE ---
+    // Calculate and generate Focus Areas automatically
+    await autoGenerateFocusAreas(student_id, currentSemester);
+    
+    res.status(200).json({ 
+        message: "Marks successfully updated.",
+        gpa: updatedGpa 
     });
 
-  } catch (error) {
-    console.error("Save Marks Error:", error);
-    res.status(500).json({ error: "Internal server error." });
+  } catch (err) {
+    console.error("Server Error Detailed:", err); 
+    res.status(500).json({ error: "Failed to process marks." });
   }
 });
+
 
 // GET: Fetch students and their marks for a specific homeroom teacher
 app.get("/api/homeroom/:teacher_id/students", (req, res) => {
@@ -975,7 +1207,6 @@ app.get("/teachers/available-for-homeroom", (req, res) => {
   });
 });
 // POST: Login Handler
-// POST: Login Handler with Debug Logs
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
   
@@ -1726,6 +1957,8 @@ app.put("/leave-requests/:id/status", (req, res) => {
         });
     });
 });
+
+const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
